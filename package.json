@@ -1,0 +1,20 @@
+{
+  "name": "@kazuemon/asn1",
+  "author": "Kazuya Miyamoto <git@k6n.jp>",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "format": "biome format --write ./src",
+    "lint": "biome lint ./src",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.5.2",
+    "@types/node": "^20.11.2",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.11",
+    "vite-plugin-dts": "^3.7.1",
+    "vitest": "^1.2.0"
+  }
+}
