@@ -34,7 +34,7 @@ export const _decodeAsn1 = (uint8Ary: Uint8Array): Asn1Data[] => {
     const tagClass = (idOcts >> 6) as TagClass;
     // Length Octets
     const lenOcts = uint8Ary[++i];
-    const len = (lenOcts << 1) >> 1; // FIXME: https://en.wikipedia.org/wiki/X.690#Length_octets
+    const len = lenOcts & 127; // FIXME: https://en.wikipedia.org/wiki/X.690#Length_octets
     // Value Octets
     const valueOcts = uint8Ary.slice(++i, i + len);
     if (valueOcts.length !== len) throw new RangeError();
