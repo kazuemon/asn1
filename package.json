@@ -16,5 +16,8 @@
     "vite": "^5.0.11",
     "vite-plugin-dts": "^3.7.1",
     "vitest": "^1.2.0"
+  },
+  "dependencies": {
+    "valibot": "^0.25.0"
   }
 }

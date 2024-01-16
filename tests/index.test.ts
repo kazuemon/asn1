@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decodeAsn1, Asn1Data } from "../src";
 import { TagClass, UniversalClassTag } from "../src/const";
+import { integer } from "../src/schema/integer";
 
 describe("ASN1 を正しくパースできる", () => {
   describe("BindResuest", () => {
@@ -133,3 +134,27 @@ describe("ASN1 を正しくパースできる", () => {
 });
 
 // TODO: 異常系のテストの追加
+
+describe("スキーマを用いて正しくエンコード/デコードできる", () => {
+  describe("Integer", () => {
+    const schema = integer();
+
+    it("エンコード", () => {
+      expect(
+        Buffer.from(schema.encode(5)).toString("hex").toUpperCase(),
+      ).toEqual("020105");
+      expect(
+        Buffer.from(schema.encode(3000)).toString("hex").toUpperCase(),
+      ).toEqual("02020BB8");
+    });
+
+    it("デコード", () => {
+      expect(schema.decode(decodeAsn1(Buffer.from("020105", "hex")))).toEqual(
+        5,
+      );
+      expect(schema.decode(decodeAsn1(Buffer.from("02020BB8", "hex")))).toEqual(
+        3000,
+      );
+    });
+  });
+});
