@@ -2,19 +2,28 @@ import * as v from "valibot";
 import { Asn1Data } from "..";
 import { TagClass, UniversalClassTag } from "../const";
 import { pad0Hex } from "../utils";
-import { BaseSchema } from "./base";
+import { BaseSchema, CustomConfig } from "./base";
 import { idSchemaFactory } from "../utils/schema";
 
-class IntegerSchema extends BaseSchema<number> {
-  valibotSchema = v.object({
-    id: idSchemaFactory({
-      tagClass: TagClass.UNIVERSAL,
-      isConstructed: false,
-      tagType: UniversalClassTag.INTEGER,
-    }),
-    len: v.number([v.minValue(0)]),
-    value: v.instance(Uint8Array),
-  });
+export class IntegerSchema extends BaseSchema<number> {
+  valibotSchema: v.BaseSchema;
+  tagClass: TagClass = TagClass.UNIVERSAL;
+  tagType: number = UniversalClassTag.INTEGER;
+
+  constructor(config: CustomConfig = {}) {
+    super();
+    if (config.tagClass) this.tagClass = config.tagClass;
+    if (config.tagType) this.tagType = config.tagType;
+    this.valibotSchema = v.object({
+      id: idSchemaFactory({
+        tagClass: this.tagClass,
+        isConstructed: false,
+        tagType: this.tagType,
+      }),
+      len: v.number([v.minValue(0)]),
+      value: v.instance(Uint8Array),
+    });
+  }
 
   decode(asnData: Asn1Data) {
     const res = v.parse(this.valibotSchema, asnData);
@@ -26,7 +35,7 @@ class IntegerSchema extends BaseSchema<number> {
       Buffer.from(pad0Hex(data.toString(16)), "hex"),
     );
     let uint8Ary = Uint8Array.from([
-      (TagClass.UNIVERSAL << 6) + (0 << 5) + UniversalClassTag.INTEGER,
+      (this.tagClass << 6) + (0 << 5) + this.tagType,
       value.length,
     ]);
     uint8Ary = Buffer.concat([uint8Ary, value]);
@@ -34,4 +43,4 @@ class IntegerSchema extends BaseSchema<number> {
   }
 }
 
-export const integer = () => new IntegerSchema();
+export const integer = (config?: CustomConfig) => new IntegerSchema(config);
