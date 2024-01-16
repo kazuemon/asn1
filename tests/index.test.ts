@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { decodeAsn1, Asn1Data } from "../src";
 import { TagClass, UniversalClassTag } from "../src/const";
 import { integer } from "../src/schema/integer";
+import { octetString } from "../src/schema/octet-string";
 
 describe("ASN1 を正しくパースできる", () => {
   describe("BindResuest", () => {
@@ -155,6 +156,32 @@ describe("スキーマを用いて正しくエンコード/デコードできる
       expect(schema.decode(decodeAsn1(Buffer.from("02020BB8", "hex")))).toEqual(
         3000,
       );
+    });
+  });
+
+  describe("OctetString", () => {
+    const schema = octetString();
+
+    it("エンコード", () => {
+      expect(
+        Buffer.from(schema.encode("Hello, world!"))
+          .toString("hex")
+          .toUpperCase(),
+      ).toEqual("040D48656C6C6F2C20776F726C6421");
+      expect(
+        Buffer.from(schema.encode("cn=admin")).toString("hex").toUpperCase(),
+      ).toEqual("0408636E3D61646D696E");
+    });
+
+    it("デコード", () => {
+      expect(
+        schema.decode(
+          decodeAsn1(Buffer.from("040D48656C6C6F2C20776F726C6421", "hex")),
+        ),
+      ).toEqual("Hello, world!");
+      expect(
+        schema.decode(decodeAsn1(Buffer.from("0408636E3D61646D696E", "hex"))),
+      ).toEqual("cn=admin");
     });
   });
 });
