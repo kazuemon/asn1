@@ -3,6 +3,7 @@ import { decodeAsn1, Asn1Data } from "../src";
 import { TagClass, UniversalClassTag } from "../src/const";
 import { integer } from "../src/schema/integer";
 import { octetString } from "../src/schema/octet-string";
+import { sequence } from "../src/schema/sequence";
 
 describe("ASN1 を正しくパースできる", () => {
   describe("BindResuest", () => {
@@ -182,6 +183,45 @@ describe("スキーマを用いて正しくエンコード/デコードできる
       expect(
         schema.decode(decodeAsn1(Buffer.from("0408636E3D61646D696E", "hex"))),
       ).toEqual("cn=admin");
+    });
+  });
+
+  describe("Sequence", () => {
+    const schema = sequence({
+      fields: [
+        {
+          name: "id",
+          schema: integer(),
+        },
+        {
+          name: "message",
+          schema: octetString(),
+        },
+      ] as const,
+    });
+
+    it("エンコード", () => {
+      expect(
+        Buffer.from(
+          schema.encode({
+            id: 50,
+            message: "hello",
+          }),
+        )
+          .toString("hex")
+          .toUpperCase(),
+      ).toEqual("300A020132040568656C6C6F");
+    });
+
+    it("デコード", () => {
+      const result = schema.decode(
+        decodeAsn1(Buffer.from("300a020132040568656c6c6f", "hex")),
+      );
+
+      expect(result).toEqual({
+        id: 50,
+        message: "hello",
+      });
     });
   });
 });
