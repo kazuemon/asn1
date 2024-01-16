@@ -23,7 +23,7 @@ export const decodeAsn1 = (aryBuf: ArrayBuffer): Asn1Data => {
   return _decodeAsn1(new Uint8Array(aryBuf))[0];
 };
 
-export const _decodeAsn1 = (uint8Ary: Uint8Array): Asn1Data[] => {
+const _decodeAsn1 = (uint8Ary: Uint8Array): Asn1Data[] => {
   if (uint8Ary.length < 2) throw new RangeError();
   const result: Asn1Data[] = [];
   for (let i = 0; i < uint8Ary.length; i++) {
@@ -59,7 +59,3 @@ export const _decodeAsn1 = (uint8Ary: Uint8Array): Asn1Data[] => {
   }
   return result;
 };
-
-// export const encodeAsn1 = (asn1Data: Asn1Data): ArrayBuffer => {
-//
-// }
