@@ -5,143 +5,145 @@ import { integer } from "../src/schema/integer";
 import { octetString } from "../src/schema/octet-string";
 import { sequence } from "../src/schema/sequence";
 
-describe("ASN1 を正しくパースできる", () => {
-  describe("BindResuest", () => {
-    it("Anonymous", () => {
-      const result = decodeAsn1(
-        Buffer.from("300c020101600702010304008000", "hex"),
-      );
-      expect(result).toEqual({
-        id: {
-          tagClass: TagClass.UNIVERSAL,
-          tagType: UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF,
-          isConstructed: true,
-        },
-        len: 12,
-        value: [
-          {
-            id: {
-              tagClass: TagClass.UNIVERSAL,
-              tagType: UniversalClassTag.INTEGER,
-              isConstructed: false,
-            },
-            len: 1,
-            value: new Uint8Array([1]),
+describe("Asn1 Decode Example", () => {
+  describe("LDAP", () => {
+    describe("BindResuest", () => {
+      it("Anonymous", () => {
+        const result = decodeAsn1(
+          Buffer.from("300c020101600702010304008000", "hex"),
+        );
+        expect(result).toEqual({
+          id: {
+            tagClass: TagClass.UNIVERSAL,
+            tagType: UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF,
+            isConstructed: true,
           },
-          {
-            id: {
-              tagClass: TagClass.APPLICATION,
-              tagType: 0,
-              isConstructed: true,
+          len: 12,
+          value: [
+            {
+              id: {
+                tagClass: TagClass.UNIVERSAL,
+                tagType: UniversalClassTag.INTEGER,
+                isConstructed: false,
+              },
+              len: 1,
+              value: new Uint8Array([1]),
             },
-            len: 7,
-            value: [
-              {
-                id: {
-                  tagClass: TagClass.UNIVERSAL,
-                  tagType: UniversalClassTag.INTEGER,
-                  isConstructed: false,
-                },
-                len: 1,
-                value: new Uint8Array([3]),
+            {
+              id: {
+                tagClass: TagClass.APPLICATION,
+                tagType: 0,
+                isConstructed: true,
               },
-              {
-                id: {
-                  tagClass: TagClass.UNIVERSAL,
-                  tagType: UniversalClassTag.OCTET_STRING,
-                  isConstructed: false,
+              len: 7,
+              value: [
+                {
+                  id: {
+                    tagClass: TagClass.UNIVERSAL,
+                    tagType: UniversalClassTag.INTEGER,
+                    isConstructed: false,
+                  },
+                  len: 1,
+                  value: new Uint8Array([3]),
                 },
-                len: 0,
-                value: new Uint8Array([]),
-              },
-              {
-                id: {
-                  tagClass: TagClass.CONTEXT_SPECIFIC,
-                  tagType: 0,
-                  isConstructed: false,
+                {
+                  id: {
+                    tagClass: TagClass.UNIVERSAL,
+                    tagType: UniversalClassTag.OCTET_STRING,
+                    isConstructed: false,
+                  },
+                  len: 0,
+                  value: new Uint8Array([]),
                 },
-                len: 0,
-                value: new Uint8Array([]),
-              },
-            ],
-          },
-        ],
-      } as Asn1Data);
-    });
-    it("cn=admin (auth: 'password')", () => {
-      const result = decodeAsn1(
-        Buffer.from(
-          "301c02010160170201030408636e3d61646d696e800870617373776f7264",
-          "hex",
-        ),
-      );
-      expect(result).toEqual({
-        id: {
-          tagClass: TagClass.UNIVERSAL,
-          tagType: UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF,
-          isConstructed: true,
-        },
-        len: 28,
-        value: [
-          {
-            id: {
-              tagClass: TagClass.UNIVERSAL,
-              tagType: UniversalClassTag.INTEGER,
-              isConstructed: false,
+                {
+                  id: {
+                    tagClass: TagClass.CONTEXT_SPECIFIC,
+                    tagType: 0,
+                    isConstructed: false,
+                  },
+                  len: 0,
+                  value: new Uint8Array([]),
+                },
+              ],
             },
-            len: 1,
-            value: new Uint8Array([1]),
+          ],
+        } as Asn1Data);
+      });
+      it("cn=admin (auth: 'password')", () => {
+        const result = decodeAsn1(
+          Buffer.from(
+            "301c02010160170201030408636e3d61646d696e800870617373776f7264",
+            "hex",
+          ),
+        );
+        expect(result).toEqual({
+          id: {
+            tagClass: TagClass.UNIVERSAL,
+            tagType: UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF,
+            isConstructed: true,
           },
-          {
-            id: {
-              tagClass: TagClass.APPLICATION,
-              tagType: 0,
-              isConstructed: true,
+          len: 28,
+          value: [
+            {
+              id: {
+                tagClass: TagClass.UNIVERSAL,
+                tagType: UniversalClassTag.INTEGER,
+                isConstructed: false,
+              },
+              len: 1,
+              value: new Uint8Array([1]),
             },
-            len: 23,
-            value: [
-              {
-                id: {
-                  tagClass: TagClass.UNIVERSAL,
-                  tagType: UniversalClassTag.INTEGER,
-                  isConstructed: false,
-                },
-                len: 1,
-                value: new Uint8Array([3]),
+            {
+              id: {
+                tagClass: TagClass.APPLICATION,
+                tagType: 0,
+                isConstructed: true,
               },
-              {
-                id: {
-                  tagClass: TagClass.UNIVERSAL,
-                  tagType: UniversalClassTag.OCTET_STRING,
-                  isConstructed: false,
+              len: 23,
+              value: [
+                {
+                  id: {
+                    tagClass: TagClass.UNIVERSAL,
+                    tagType: UniversalClassTag.INTEGER,
+                    isConstructed: false,
+                  },
+                  len: 1,
+                  value: new Uint8Array([3]),
                 },
-                len: 8,
-                value: new Uint8Array(Buffer.from("cn=admin", "ascii")),
-              },
-              {
-                id: {
-                  tagClass: TagClass.CONTEXT_SPECIFIC,
-                  tagType: 0,
-                  isConstructed: false,
+                {
+                  id: {
+                    tagClass: TagClass.UNIVERSAL,
+                    tagType: UniversalClassTag.OCTET_STRING,
+                    isConstructed: false,
+                  },
+                  len: 8,
+                  value: new Uint8Array(Buffer.from("cn=admin", "ascii")),
                 },
-                len: 8,
-                value: new Uint8Array(Buffer.from("password", "ascii")),
-              },
-            ],
-          },
-        ],
-      } as Asn1Data);
+                {
+                  id: {
+                    tagClass: TagClass.CONTEXT_SPECIFIC,
+                    tagType: 0,
+                    isConstructed: false,
+                  },
+                  len: 8,
+                  value: new Uint8Array(Buffer.from("password", "ascii")),
+                },
+              ],
+            },
+          ],
+        } as Asn1Data);
+      });
     });
   });
 });
 
 // TODO: 異常系のテストの追加
 
-describe("スキーマを用いて正しくエンコード/デコードできる", () => {
+describe("Built-in schemas", () => {
   describe("Integer", () => {
     const schema = integer();
 
-    it("エンコード", () => {
+    it("encode", () => {
       expect(
         Buffer.from(schema.encode(5)).toString("hex").toUpperCase(),
       ).toEqual("020105");
@@ -150,7 +152,7 @@ describe("スキーマを用いて正しくエンコード/デコードできる
       ).toEqual("02020BB8");
     });
 
-    it("デコード", () => {
+    it("decode", () => {
       expect(schema.decode(decodeAsn1(Buffer.from("020105", "hex")))).toEqual(
         5,
       );
@@ -163,7 +165,7 @@ describe("スキーマを用いて正しくエンコード/デコードできる
   describe("OctetString", () => {
     const schema = octetString();
 
-    it("エンコード", () => {
+    it("encode", () => {
       expect(
         Buffer.from(schema.encode("Hello, world!"))
           .toString("hex")
@@ -174,7 +176,7 @@ describe("スキーマを用いて正しくエンコード/デコードできる
       ).toEqual("0408636E3D61646D696E");
     });
 
-    it("デコード", () => {
+    it("decode", () => {
       expect(
         schema.decode(
           decodeAsn1(Buffer.from("040D48656C6C6F2C20776F726C6421", "hex")),
@@ -200,7 +202,7 @@ describe("スキーマを用いて正しくエンコード/デコードできる
       ] as const,
     });
 
-    it("エンコード", () => {
+    it("encode", () => {
       expect(
         Buffer.from(
           schema.encode({
@@ -213,7 +215,7 @@ describe("スキーマを用いて正しくエンコード/デコードできる
       ).toEqual("300A020132040568656C6C6F");
     });
 
-    it("デコード", () => {
+    it("decode", () => {
       const result = schema.decode(
         decodeAsn1(Buffer.from("300a020132040568656c6c6f", "hex")),
       );
