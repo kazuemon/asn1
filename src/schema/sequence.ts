@@ -34,15 +34,10 @@ type SequenceAllFieldsTuple<T extends SequenceFieldAry> = {
   [P in keyof T]: [T[P]["name"], ReturnType<T[P]["schema"]["decode"]>];
 };
 
-type SequenceOptionalFieldsTuple<T extends SequenceFieldAry> = {
-  [P in keyof T as T[P] extends { optional: true } ? P : never]: [
-    T[P]["name"],
-    ReturnType<T[P]["schema"]["decode"]>,
-  ];
-};
-
-type SequenceOptionalFieldsNameTuple<T extends SequenceFieldAry> =
-  SequenceOptionalFieldsTuple<T>[keyof SequenceOptionalFieldsTuple<T>][0];
+type SequenceOptionalFieldsNameTuple<T extends SequenceFieldAry> = Extract<
+  T[number],
+  { optional: true }
+>["name"];
 
 type SequenceAllFieldsObjectType<T extends SequenceFieldAry> = TupleToObject<
   SequenceAllFieldsTuple<T>[number]
