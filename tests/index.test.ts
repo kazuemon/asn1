@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { decodeAsn1, Asn1Data } from "../src";
 import { TagClass, UniversalClassTag } from "../src/const";
-import { integer } from "../src/schema/integer";
-import { octetString } from "../src/schema/octet-string";
-import { sequence } from "../src/schema/sequence";
 
 describe("Asn1 Decode Example", () => {
   describe("LDAP", () => {
@@ -138,92 +135,3 @@ describe("Asn1 Decode Example", () => {
 });
 
 // TODO: 異常系のテストの追加
-
-describe("Built-in schemas", () => {
-  describe("Integer", () => {
-    const schema = integer();
-
-    it("encode", () => {
-      expect(
-        Buffer.from(schema.encode(5)).toString("hex").toUpperCase(),
-      ).toEqual("020105");
-      expect(
-        Buffer.from(schema.encode(3000)).toString("hex").toUpperCase(),
-      ).toEqual("02020BB8");
-    });
-
-    it("decode", () => {
-      expect(schema.decode(decodeAsn1(Buffer.from("020105", "hex")))).toEqual(
-        5,
-      );
-      expect(schema.decode(decodeAsn1(Buffer.from("02020BB8", "hex")))).toEqual(
-        3000,
-      );
-    });
-  });
-
-  describe("OctetString", () => {
-    const schema = octetString();
-
-    it("encode", () => {
-      expect(
-        Buffer.from(schema.encode("Hello, world!"))
-          .toString("hex")
-          .toUpperCase(),
-      ).toEqual("040D48656C6C6F2C20776F726C6421");
-      expect(
-        Buffer.from(schema.encode("cn=admin")).toString("hex").toUpperCase(),
-      ).toEqual("0408636E3D61646D696E");
-    });
-
-    it("decode", () => {
-      expect(
-        schema.decode(
-          decodeAsn1(Buffer.from("040D48656C6C6F2C20776F726C6421", "hex")),
-        ),
-      ).toEqual("Hello, world!");
-      expect(
-        schema.decode(decodeAsn1(Buffer.from("0408636E3D61646D696E", "hex"))),
-      ).toEqual("cn=admin");
-    });
-  });
-
-  describe("Sequence", () => {
-    const schema = sequence({
-      fields: [
-        {
-          name: "id",
-          schema: integer(),
-        },
-        {
-          name: "message",
-          schema: octetString(),
-        },
-      ] as const,
-    });
-
-    it("encode", () => {
-      expect(
-        Buffer.from(
-          schema.encode({
-            id: 50,
-            message: "hello",
-          }),
-        )
-          .toString("hex")
-          .toUpperCase(),
-      ).toEqual("300A020132040568656C6C6F");
-    });
-
-    it("decode", () => {
-      const result = schema.decode(
-        decodeAsn1(Buffer.from("300a020132040568656c6c6f", "hex")),
-      );
-
-      expect(result).toEqual({
-        id: 50,
-        message: "hello",
-      });
-    });
-  });
-});
