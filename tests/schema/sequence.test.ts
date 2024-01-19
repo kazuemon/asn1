@@ -5,40 +5,117 @@ import { octetString } from "../../src/schema/octet-string";
 import { sequence } from "../../src/schema/sequence";
 
 describe("Sequence", () => {
-  const schema = sequence({
-    fields: [
-      {
-        name: "id",
-        schema: integer(),
-      },
-      {
-        name: "message",
-        schema: octetString(),
-      },
-    ] as const,
-  });
+  /**
+   * TODO: optionalTuple (v.special) の単体テスト
+   * - i[r], s[r] => OK
+   * - i[o], s[o] => OK
+   * - i[o], s[o, r] => NG (スキーマ残り)
+   * - i[r, o], s[o, r] => NG (インプット残り)
+   */
+  // describe("optionalTuple (SpecialValidation)", () => {
+  // })
 
-  it("encode", () => {
-    expect(
-      Buffer.from(
-        schema.encode({
+  describe("default", () => {
+    const schema = sequence({
+      fields: [
+        {
+          name: "id",
+          schema: integer(),
+        },
+        {
+          name: "message",
+          schema: octetString(),
+        },
+      ],
+    });
+
+    it("encode", () => {
+      expect(
+        Buffer.from(
+          schema.encode({
+            id: 50,
+            message: "hello",
+          }),
+        )
+          .toString("hex")
+          .toUpperCase(),
+      ).toEqual("300A020132040568656C6C6F");
+    });
+
+    it("decode", () => {
+      const result = schema.decode(
+        decodeAsn1(Buffer.from("300a020132040568656c6c6f", "hex")),
+      );
+
+      expect(result).toEqual({
+        id: 50,
+        message: "hello",
+      });
+    });
+  });
+  describe("optional", () => {
+    const schema = sequence({
+      fields: [
+        {
+          name: "id",
+          schema: integer(),
+        },
+        {
+          name: "message",
+          schema: octetString(),
+          optional: true,
+        },
+      ],
+    });
+
+    describe("Data contain optional fields", () => {
+      it("encode", () => {
+        expect(
+          Buffer.from(
+            schema.encode({
+              id: 50,
+              message: "hello",
+            }),
+          )
+            .toString("hex")
+            .toUpperCase(),
+        ).toEqual("300A020132040568656C6C6F");
+      });
+
+      it("decode", () => {
+        const result = schema.decode(
+          decodeAsn1(Buffer.from("300a020132040568656c6c6f", "hex")),
+        );
+
+        expect(result).toEqual({
           id: 50,
           message: "hello",
-        }),
-      )
-        .toString("hex")
-        .toUpperCase(),
-    ).toEqual("300A020132040568656C6C6F");
-  });
+        });
+      });
+    });
 
-  it("decode", () => {
-    const result = schema.decode(
-      decodeAsn1(Buffer.from("300a020132040568656c6c6f", "hex")),
-    );
+    describe("Data does not contain optional fields", () => {
+      it("encode", () => {
+        expect(
+          Buffer.from(
+            schema.encode({
+              id: 50,
+            }),
+          )
+            .toString("hex")
+            .toUpperCase(),
+        ).toEqual("3003020132");
+      });
 
-    expect(result).toEqual({
-      id: 50,
-      message: "hello",
+      it("decode", () => {
+        const result = schema.decode(
+          decodeAsn1(Buffer.from("3003020132", "hex")),
+        );
+
+        expect(result).toEqual({
+          id: 50,
+        });
+      });
     });
   });
 });

@@ -11,12 +11,13 @@ type SequenceField<
 > = Readonly<{
   name: string;
   schema: BaseSchema<TSType, Asn1Schema, NativeSchema>;
+  optional?: boolean;
 }>;
 
-type SequenceFieldAry = Readonly<
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  [SequenceField<any, any, any>, ...SequenceField<any, any, any>[]]
->;
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+type AnySequenceField = SequenceField<any, v.BaseSchema, v.BaseSchema>;
+
+type SequenceFieldAry = Readonly<[AnySequenceField, ...AnySequenceField[]]>;
 
 type SequenceConfig<T extends SequenceFieldAry> = CustomConfig & {
   fields: T;
@@ -29,15 +30,55 @@ type TupleToObject<T extends Readonly<[string, any]>> = {
   [K in T[0]]: Extract<T, [K, any]>[1];
 };
 
-type SequenceFieldsReturnTypeTuple<T extends SequenceFieldAry> = {
+type SequenceAllFieldsTuple<T extends SequenceFieldAry> = {
   [P in keyof T]: [T[P]["name"], ReturnType<T[P]["schema"]["decode"]>];
 };
 
-type SequenceFieldsReturnType<T extends SequenceFieldAry> = TupleToObject<
-  SequenceFieldsReturnTypeTuple<T>[number]
+type SequenceOptionalFieldsNameTuple<T extends SequenceFieldAry> = Extract<
+  T[number],
+  { optional: true }
+>["name"];
+
+type SequenceAllFieldsObjectType<T extends SequenceFieldAry> = TupleToObject<
+  SequenceAllFieldsTuple<T>[number]
 >;
 
-export const sequence = <T extends SequenceFieldAry>(
+type PartialByKeys<T, Keys extends keyof T> = Omit<T, Keys> &
+  Partial<Pick<T, Keys>>;
+
+type SequenceFieldsObjectType<T extends SequenceFieldAry> = PartialByKeys<
+  SequenceAllFieldsObjectType<T>,
+  SequenceOptionalFieldsNameTuple<T>
+>;
+
+export const optionalTuple = (fields: SequenceFieldAry) =>
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  v.special<[any, ...any[]]>((input) => {
+    if (!Array.isArray(input)) return false;
+    let curSchemaIndex = 0;
+    let curAryIndex = 0;
+    while (curAryIndex < input.length && curSchemaIndex < fields.length) {
+      const res = v.safeParse(
+        fields[curSchemaIndex].schema._valibot.asn1Schema,
+        input[curAryIndex],
+      );
+      if (res.success) {
+        curAryIndex++;
+      } else {
+        if (!fields[curSchemaIndex].optional) return false;
+      }
+      curSchemaIndex++;
+    }
+    // Check if all inputs are validated
+    if (input.length !== curAryIndex) return false;
+    // Check for non-Optional fields in the rest of the schema
+    for (let i = curSchemaIndex; i < fields.length; i++) {
+      if (!fields[curSchemaIndex].optional) return false;
+    }
+    return true;
+  });
+
+export const sequence = <const T extends SequenceFieldAry>(
   config: SequenceConfig<T>,
 ) => {
   const _tagClass = config?.tagClass ?? TagClass.UNIVERSAL;
@@ -50,25 +91,23 @@ export const sequence = <T extends SequenceFieldAry>(
       tagType: _tagType,
     }),
     len: v.number([v.minValue(0)]),
-    value: v.tuple(
-      config.fields.map((f) => f.schema._valibot.asn1Schema) as [
-        v.BaseSchema,
-        ...v.BaseSchema[],
-      ],
-    ),
+    value: optionalTuple(config.fields),
   });
   const _nativeSchema = v.object(
     Object.fromEntries(
       config.fields.map(
         (f) =>
-          [f.name, f.schema._valibot.nativeSchema] as [string, v.BaseSchema],
+          [
+            f.name,
+            f.optional
+              ? v.optional(f.schema._valibot.nativeSchema)
+              : f.schema._valibot.nativeSchema,
+          ] as [string, v.BaseSchema],
       ),
     ),
   );
-  return new (class SequenceSchema<
-    const T extends SequenceFieldAry,
-  > extends BaseSchema<
-    SequenceFieldsReturnType<T>,
+  return new (class SequenceSchema extends BaseSchema<
+    SequenceFieldsObjectType<T>,
     typeof _asn1Schema,
     typeof _nativeSchema
   > {
@@ -83,24 +122,25 @@ export const sequence = <T extends SequenceFieldAry>(
     decode(asnData: Asn1Data) {
       const parsedData = v.parse(this._valibot.asn1Schema, asnData);
       // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-      const obj: SequenceFieldsReturnType<T> = {} as any;
+      const obj: SequenceFieldsObjectType<T> = {} as any;
       for (let i = 0; i < parsedData.value.length; i++) {
         const field = this.fields[i];
-        obj[field.name as keyof SequenceFieldsReturnType<T>] =
+        obj[field.name as keyof SequenceFieldsObjectType<T>] =
           field.schema.decode(parsedData.value[i]);
       }
       return obj;
     }
 
-    encode(data: SequenceFieldsReturnType<T>) {
+    encode(data: SequenceFieldsObjectType<T>) {
       const parsedData = v.parse(
         this._valibot.nativeSchema,
         data,
-      ) as SequenceFieldsReturnType<T>;
+      ) as SequenceFieldsObjectType<T>;
       const uint8AryFields: Uint8Array[] = [];
       for (const field of this.fields) {
+        if (!(field.name in parsedData)) continue;
         const res = field.schema.encode(
-          parsedData[field.name as keyof SequenceFieldsReturnType<T>],
+          parsedData[field.name as keyof SequenceFieldsObjectType<T>],
         );
         uint8AryFields.push(res);
       }
