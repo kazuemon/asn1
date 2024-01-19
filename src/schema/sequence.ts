@@ -78,7 +78,7 @@ export const optionalTuple = (fields: SequenceFieldAry) =>
     return true;
   });
 
-export const sequence = <T extends SequenceFieldAry>(
+export const sequence = <const T extends SequenceFieldAry>(
   config: SequenceConfig<T>,
 ) => {
   const _tagClass = config?.tagClass ?? TagClass.UNIVERSAL;

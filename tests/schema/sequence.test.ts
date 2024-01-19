@@ -26,7 +26,7 @@ describe("Sequence", () => {
           name: "message",
           schema: octetString(),
         },
-      ] as const,
+      ],
     });
 
     it("encode", () => {
@@ -65,7 +65,7 @@ describe("Sequence", () => {
           schema: octetString(),
           optional: true,
         },
-      ] as const,
+      ],
     });
 
     describe("Data contain optional fields", () => {
