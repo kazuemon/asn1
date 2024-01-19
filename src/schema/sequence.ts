@@ -2,15 +2,21 @@ import * as v from "valibot";
 import { Asn1Data } from "..";
 import { TagClass, UniversalClassTag } from "../const";
 import { idSchemaFactory } from "../utils/schema";
-import { BaseSchema, CustomConfig } from "./base";
+import { BaseSchema, CustomConfig, ValibotSchema } from "./base";
 
-type SequenceField<T> = Readonly<{
+type SequenceField<
+  TSType,
+  Asn1Schema extends v.BaseSchema,
+  NativeSchema extends v.BaseSchema,
+> = Readonly<{
   name: string;
-  schema: BaseSchema<T>;
+  schema: BaseSchema<TSType, Asn1Schema, NativeSchema>;
 }>;
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-type SequenceFieldAry = Readonly<[SequenceField<any>, ...SequenceField<any>[]]>;
+type SequenceFieldAry = Readonly<
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  [SequenceField<any, any, any>, ...SequenceField<any, any, any>[]]
+>;
 
 type SequenceConfig<T extends SequenceFieldAry> = CustomConfig & {
   fields: T;
@@ -31,63 +37,80 @@ type SequenceFieldsReturnType<T extends SequenceFieldAry> = TupleToObject<
   SequenceFieldsReturnTypeTuple<T>[number]
 >;
 
-export class SequenceSchema<
-  const T extends SequenceFieldAry,
-> extends BaseSchema<SequenceFieldsReturnType<T>> {
-  valibotSchema;
-  tagClass: TagClass = TagClass.UNIVERSAL;
-  tagType: number = UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF;
-
-  constructor(private config: SequenceConfig<T>) {
-    super();
-    this.valibotSchema = v.object({
-      id: idSchemaFactory({
-        tagClass: this.tagClass,
-        isConstructed: true,
-        tagType: this.tagType,
-      }),
-      len: v.number([v.minValue(0)]),
-      value: v.tuple(
-        config.fields.map((f) => f.schema.valibotSchema) as [
-          v.BaseSchema,
-          ...v.BaseSchema[],
-        ],
-      ),
-    });
-  }
-
-  decode(asnData: Asn1Data) {
-    const res = v.parse(this.valibotSchema, asnData);
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    const obj: SequenceFieldsReturnType<T> = {} as any;
-    for (let i = 0; i < res.value.length; i++) {
-      const field = this.config.fields[i];
-      obj[field.name as keyof SequenceFieldsReturnType<T>] =
-        field.schema.decode(res.value[i]);
-    }
-    return obj;
-  }
-
-  encode(data: SequenceFieldsReturnType<T>) {
-    const uint8AryFields: Uint8Array[] = [];
-    // FIXME: Add validation
-    for (const field of this.config.fields) {
-      const res = field.schema.encode(
-        data[field.name as keyof SequenceFieldsReturnType<T>],
-      );
-      console.log({ name: field.name, encoded: res });
-      uint8AryFields.push(res);
-    }
-    const value = Buffer.concat(uint8AryFields);
-    let uint8Ary = Uint8Array.from([
-      (this.tagClass << 6) + 32 + this.tagType,
-      value.length,
-    ]);
-    uint8Ary = Buffer.concat([uint8Ary, value]);
-    return uint8Ary;
-  }
-}
-
 export const sequence = <T extends SequenceFieldAry>(
   config: SequenceConfig<T>,
-) => new SequenceSchema(config);
+) => {
+  const _tagClass = config?.tagClass ?? TagClass.UNIVERSAL;
+  const _tagType: number =
+    config?.tagType ?? UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF;
+  const _asn1Schema = v.object({
+    id: idSchemaFactory({
+      tagClass: _tagClass,
+      isConstructed: true,
+      tagType: _tagType,
+    }),
+    len: v.number([v.minValue(0)]),
+    value: v.tuple(
+      config.fields.map((f) => f.schema._valibot.asn1Schema) as [
+        v.BaseSchema,
+        ...v.BaseSchema[],
+      ],
+    ),
+  });
+  const _nativeSchema = v.object(
+    Object.fromEntries(
+      config.fields.map(
+        (f) =>
+          [f.name, f.schema._valibot.nativeSchema] as [string, v.BaseSchema],
+      ),
+    ),
+  );
+  return new (class SequenceSchema<
+    const T extends SequenceFieldAry,
+  > extends BaseSchema<
+    SequenceFieldsReturnType<T>,
+    typeof _asn1Schema,
+    typeof _nativeSchema
+  > {
+    _valibot: ValibotSchema<typeof _asn1Schema, typeof _nativeSchema> = {
+      asn1Schema: _asn1Schema,
+      nativeSchema: _nativeSchema,
+    };
+    tagClass = _tagClass;
+    tagType = _tagType;
+    fields = config.fields;
+
+    decode(asnData: Asn1Data) {
+      const parsedData = v.parse(this._valibot.asn1Schema, asnData);
+      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      const obj: SequenceFieldsReturnType<T> = {} as any;
+      for (let i = 0; i < parsedData.value.length; i++) {
+        const field = this.fields[i];
+        obj[field.name as keyof SequenceFieldsReturnType<T>] =
+          field.schema.decode(parsedData.value[i]);
+      }
+      return obj;
+    }
+
+    encode(data: SequenceFieldsReturnType<T>) {
+      const parsedData = v.parse(
+        this._valibot.nativeSchema,
+        data,
+      ) as SequenceFieldsReturnType<T>;
+      const uint8AryFields: Uint8Array[] = [];
+      for (const field of this.fields) {
+        const res = field.schema.encode(
+          parsedData[field.name as keyof SequenceFieldsReturnType<T>],
+        );
+        uint8AryFields.push(res);
+      }
+      const value = Buffer.concat(uint8AryFields);
+      let uint8Ary = Uint8Array.from([
+        (this.tagClass << 6) + 32 + this.tagType,
+        value.length,
+      ]);
+      uint8Ary = Buffer.concat([uint8Ary, value]);
+      return uint8Ary;
+    }
+  })();
+};
