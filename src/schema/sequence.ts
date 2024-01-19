@@ -51,6 +51,33 @@ type SequenceFieldsObjectType<T extends SequenceFieldAry> = PartialByKeys<
   SequenceOptionalFieldsNameTuple<T>
 >;
 
+export const optionalTuple = (fields: SequenceFieldAry) =>
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  v.special<[any, ...any[]]>((input) => {
+    if (!Array.isArray(input)) return false;
+    let curSchemaIndex = 0;
+    let curAryIndex = 0;
+    while (curAryIndex < input.length && curSchemaIndex < fields.length) {
+      const res = v.safeParse(
+        fields[curSchemaIndex].schema._valibot.asn1Schema,
+        input[curAryIndex],
+      );
+      if (res.success) {
+        curAryIndex++;
+      } else {
+        if (!fields[curSchemaIndex].optional) return false;
+      }
+      curSchemaIndex++;
+    }
+    // Check if all inputs are validated
+    if (input.length !== curAryIndex) return false;
+    // Check for non-Optional fields in the rest of the schema
+    for (let i = curSchemaIndex; i < fields.length; i++) {
+      if (!fields[curSchemaIndex].optional) return false;
+    }
+    return true;
+  });
+
 export const sequence = <T extends SequenceFieldAry>(
   config: SequenceConfig<T>,
 ) => {
@@ -64,13 +91,7 @@ export const sequence = <T extends SequenceFieldAry>(
       tagType: _tagType,
     }),
     len: v.number([v.minValue(0)]),
-    value: v.tuple(
-      config.fields.map((f) =>
-        f.optional
-          ? v.optional(f.schema._valibot.asn1Schema)
-          : f.schema._valibot.asn1Schema,
-      ) as [v.BaseSchema, ...v.BaseSchema[]],
-    ),
+    value: optionalTuple(config.fields),
   });
   const _nativeSchema = v.object(
     Object.fromEntries(

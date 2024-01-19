@@ -5,6 +5,16 @@ import { octetString } from "../../src/schema/octet-string";
 import { sequence } from "../../src/schema/sequence";
 
 describe("Sequence", () => {
+  /**
+   * TODO: optionalTuple (v.special) の単体テスト
+   * - i[r], s[r] => OK
+   * - i[o], s[o] => OK
+   * - i[o], s[o, r] => NG (スキーマ残り)
+   * - i[r, o], s[o, r] => NG (インプット残り)
+   */
+  // describe("optionalTuple (SpecialValidation)", () => {
+  // })
+
   describe("default", () => {
     const schema = sequence({
       fields: [
