@@ -53,6 +53,33 @@ describe("Sequence", () => {
       });
     });
   });
+  describe("empty", () => {
+    const schema = sequence({
+      fields: [
+        {
+          name: "id",
+          schema: integer(),
+          optional: true,
+        },
+        {
+          name: "message",
+          schema: octetString(),
+          optional: true,
+        },
+      ],
+    });
+    it("encode", () => {
+      expect(
+        Buffer.from(schema.encode({})).toString("hex").toUpperCase(),
+      ).toEqual("3000");
+    });
+
+    it("decode", () => {
+      const result = schema.decode(decodeAsn1(Buffer.from("3000", "hex")));
+
+      expect(result).toEqual({});
+    });
+  });
   describe("optional", () => {
     const schema = sequence({
       fields: [

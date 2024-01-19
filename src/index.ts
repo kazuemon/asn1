@@ -38,7 +38,11 @@ const _decodeAsn1 = (uint8Ary: Uint8Array): Asn1Data[] => {
     // Value Octets
     const valueOcts = uint8Ary.slice(++i, i + len);
     if (valueOcts.length !== len) throw new RangeError();
-    const value = isConstructed ? _decodeAsn1(valueOcts) : valueOcts;
+    const value = isConstructed
+      ? valueOcts.length === 0
+        ? []
+        : _decodeAsn1(valueOcts)
+      : valueOcts;
     result.push({
       id:
         tagClass === TagClass.UNIVERSAL
