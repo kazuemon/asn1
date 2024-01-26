@@ -123,10 +123,22 @@ export const sequence = <const T extends SequenceFieldAry>(
       const parsedData = v.parse(this._valibot.asn1Schema, asnData);
       // biome-ignore lint/suspicious/noExplicitAny: <explanation>
       const obj: SequenceFieldsObjectType<T> = {} as any;
-      for (let i = 0; i < parsedData.value.length; i++) {
-        const field = this.fields[i];
-        obj[field.name as keyof SequenceFieldsObjectType<T>] =
-          field.schema.decode(parsedData.value[i]);
+      let curAryIndex = 0;
+      let curSchemaIndex = 0;
+      while (curAryIndex < parsedData.value.length) {
+        const field = this.fields[curSchemaIndex];
+        try {
+          obj[field.name as keyof SequenceFieldsObjectType<T>] =
+            field.schema.decode(parsedData.value[curAryIndex]);
+          curAryIndex++;
+          curSchemaIndex++;
+        } catch (err) {
+          if (err instanceof v.ValiError && field.optional) {
+            curSchemaIndex++;
+            continue;
+          }
+          throw err;
+        }
       }
       return obj;
     }
