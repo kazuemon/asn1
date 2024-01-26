@@ -4,6 +4,7 @@ import { integer } from "../../src/schema/integer";
 import { octetString } from "../../src/schema/octet-string";
 import { sequence } from "../../src/schema/sequence";
 import { TagClass } from "../../src/const";
+import { ValiError } from "valibot";
 
 describe("Sequence", () => {
   /**
@@ -306,16 +307,11 @@ describe("Sequence", () => {
         });
       });
     });
-    describe("y and x", () => {
-      it("decode", () => {
-        const result = schema.decode(
-          decodeAsn1(Buffer.from("300681010A800109", "hex")),
-        );
-
-        expect(result).toEqual({
-          x: 9,
-          y: 10,
-        });
+    describe("y and x (invalid) ", () => {
+      it("decode (throws Error)", () => {
+        expect(() =>
+          schema.decode(decodeAsn1(Buffer.from("300681010A800109", "hex"))),
+        ).toThrowError(ValiError);
       });
     });
   });
