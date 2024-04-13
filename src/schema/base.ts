@@ -2,9 +2,9 @@ import * as v from "valibot";
 import { Asn1Data } from "..";
 import { TagClass, UniversalClassTag } from "../const";
 
-export type CustomConfig = {
-  tagClass?: TagClass;
-  tagType?: UniversalClassTag;
+export type SchemaConfig = {
+  tagClass: TagClass;
+  tagType: UniversalClassTag;
 };
 
 export type ValibotSchemaPair<

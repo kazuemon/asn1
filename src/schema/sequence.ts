@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { Asn1Data } from "..";
 import { TagClass, UniversalClassTag } from "../const";
 import { idSchemaFactory } from "../utils/schema";
-import { BaseSchema, CustomConfig, ValibotSchemaPair } from "./base";
+import { BaseSchema, SchemaConfig, ValibotSchemaPair } from "./base";
 
 type SequenceField<
   TSType,
@@ -19,7 +19,7 @@ type AnySequenceField = SequenceField<any, v.BaseSchema, v.BaseSchema>;
 
 type SequenceFieldAry = Readonly<[AnySequenceField, ...AnySequenceField[]]>;
 
-type SequenceConfig<T extends SequenceFieldAry> = CustomConfig & {
+type SequenceConfig<T extends SequenceFieldAry> = Partial<SchemaConfig> & {
   fields: T;
 };
 
@@ -78,24 +78,28 @@ export const optionalTuple = (fields: SequenceFieldAry) =>
     return true;
   });
 
-export const sequence = <const T extends SequenceFieldAry>(
-  config: SequenceConfig<T>,
-) => {
-  const _tagClass = config?.tagClass ?? TagClass.UNIVERSAL;
-  const _tagType: number =
-    config?.tagType ?? UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF;
+const defaultConfig: SchemaConfig = {
+  tagClass: TagClass.UNIVERSAL,
+  tagType: UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF,
+};
+
+export const sequence = <const T extends SequenceFieldAry>({
+  fields,
+  ..._config
+}: SequenceConfig<T>) => {
+  const { tagClass, tagType } = { ...defaultConfig, ..._config };
   const _asn1Schema = v.object({
     id: idSchemaFactory({
-      tagClass: _tagClass,
+      tagClass,
       isConstructed: true,
-      tagType: _tagType,
+      tagType,
     }),
     len: v.number([v.minValue(0)]),
-    value: optionalTuple(config.fields),
+    value: optionalTuple(fields),
   });
   const _nativeSchema = v.object(
     Object.fromEntries(
-      config.fields.map(
+      fields.map(
         (f) =>
           [
             f.name,
@@ -119,9 +123,9 @@ export const sequence = <const T extends SequenceFieldAry>(
         asn1Schema: _asn1Schema,
         nativeSchema: _nativeSchema,
       };
-    tagClass = _tagClass;
-    tagType = _tagType;
-    fields = config.fields;
+    tagClass = tagClass;
+    tagType = tagType;
+    fields = fields;
 
     decode(asnData: Asn1Data) {
       const parsedData = v.parse(this.valibotSchema.asn1Schema, asnData);

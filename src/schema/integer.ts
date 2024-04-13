@@ -2,17 +2,21 @@ import * as v from "valibot";
 import { Asn1Data } from "..";
 import { TagClass, UniversalClassTag } from "../const";
 import { pad0Hex } from "../utils";
-import { BaseSchema, CustomConfig, ValibotSchemaPair } from "./base";
+import { BaseSchema, SchemaConfig, ValibotSchemaPair } from "./base";
 import { idSchemaFactory } from "../utils/schema";
 
-export const integer = (config?: CustomConfig) => {
-  const _tagClass = config?.tagClass ?? TagClass.UNIVERSAL;
-  const _tagType: number = config?.tagType ?? UniversalClassTag.INTEGER;
+const defaultConfig: SchemaConfig = {
+  tagClass: TagClass.UNIVERSAL,
+  tagType: UniversalClassTag.INTEGER,
+};
+
+export const integer = (_config = {} as Partial<SchemaConfig>) => {
+  const { tagClass, tagType } = { ...defaultConfig, ..._config };
   const _asn1Schema = v.object({
     id: idSchemaFactory({
-      tagClass: _tagClass,
+      tagClass,
       isConstructed: false,
-      tagType: _tagType,
+      tagType,
     }),
     len: v.number([v.minValue(0)]),
     value: v.instance(Uint8Array),
@@ -26,8 +30,8 @@ export const integer = (config?: CustomConfig) => {
         asn1Schema: _asn1Schema,
         nativeSchema: _nativeSchema,
       };
-    tagClass = _tagClass;
-    tagType = _tagType;
+    tagClass = tagClass;
+    tagType = tagType;
 
     decode(asnData: Asn1Data) {
       const res = v.parse(this.valibotSchema.asn1Schema, asnData);
