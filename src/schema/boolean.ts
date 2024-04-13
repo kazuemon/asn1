@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { TagClass, UniversalClassTag } from "../const";
-import { BaseSchema, CustomConfig, ValibotSchema } from "./base";
+import { BaseSchema, CustomConfig, ValibotSchemaPair } from "./base";
 import { idSchemaFactory } from "../utils/schema";
 import { Asn1Data } from "..";
 import { pad0Hex } from "../utils";
@@ -18,25 +18,24 @@ export const boolean = (config?: CustomConfig) => {
     value: v.instance(Uint8Array),
   });
   const _nativeSchema = v.boolean();
-  return new (class BooleanSchema extends BaseSchema<
-    boolean,
-    typeof _asn1Schema,
-    typeof _nativeSchema
-  > {
-    _valibot: ValibotSchema<typeof _asn1Schema, typeof _nativeSchema> = {
-      asn1Schema: _asn1Schema,
-      nativeSchema: _nativeSchema,
-    };
+  return new (class BooleanSchema
+    implements BaseSchema<boolean, typeof _asn1Schema, typeof _nativeSchema>
+  {
+    valibotSchema: ValibotSchemaPair<typeof _asn1Schema, typeof _nativeSchema> =
+      {
+        asn1Schema: _asn1Schema,
+        nativeSchema: _nativeSchema,
+      };
     tagClass = _tagClass;
     tagType = _tagType;
 
     decode(asnData: Asn1Data) {
-      const res = v.parse(this._valibot.asn1Schema, asnData);
+      const res = v.parse(this.valibotSchema.asn1Schema, asnData);
       return Buffer.from(res.value).readUintBE(0, res.value.length) > 0;
     }
 
     encode(data: boolean) {
-      const parsedData = v.parse(this._valibot.nativeSchema, data);
+      const parsedData = v.parse(this.valibotSchema.nativeSchema, data);
       const value = new Uint8Array(
         Buffer.from(pad0Hex((parsedData ? 1 : 0).toString(16)), "hex"),
       );

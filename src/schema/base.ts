@@ -7,7 +7,7 @@ export type CustomConfig = {
   tagType?: UniversalClassTag;
 };
 
-export type ValibotSchema<
+export type ValibotSchemaPair<
   Asn1Schema extends v.BaseSchema,
   NativeSchema extends v.BaseSchema,
 > = {
@@ -15,14 +15,14 @@ export type ValibotSchema<
   nativeSchema: NativeSchema;
 };
 
-export abstract class BaseSchema<
+export interface BaseSchema<
   TSType,
   Asn1Schema extends v.BaseSchema,
   NativeSchema extends v.BaseSchema,
 > {
-  abstract tagClass: TagClass;
-  abstract tagType: number;
-  abstract _valibot: ValibotSchema<Asn1Schema, NativeSchema>;
-  abstract decode(asnData: Asn1Data): TSType;
-  abstract encode(data: TSType): Uint8Array;
+  tagClass: TagClass;
+  tagType: number;
+  valibotSchema: ValibotSchemaPair<Asn1Schema, NativeSchema>;
+  decode(asnData: Asn1Data): TSType;
+  encode(data: TSType): Uint8Array;
 }

@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { Asn1Data } from "..";
 import { TagClass, UniversalClassTag } from "../const";
 import { idSchemaFactory } from "../utils/schema";
-import { BaseSchema, CustomConfig, ValibotSchema } from "./base";
+import { BaseSchema, CustomConfig, ValibotSchemaPair } from "./base";
 
 type SequenceField<
   TSType,
@@ -59,7 +59,7 @@ export const optionalTuple = (fields: SequenceFieldAry) =>
     let curAryIndex = 0;
     while (curAryIndex < input.length && curSchemaIndex < fields.length) {
       const res = v.safeParse(
-        fields[curSchemaIndex].schema._valibot.asn1Schema,
+        fields[curSchemaIndex].schema.valibotSchema.asn1Schema,
         input[curAryIndex],
       );
       if (res.success) {
@@ -100,27 +100,31 @@ export const sequence = <const T extends SequenceFieldAry>(
           [
             f.name,
             f.optional
-              ? v.optional(f.schema._valibot.nativeSchema)
-              : f.schema._valibot.nativeSchema,
+              ? v.optional(f.schema.valibotSchema.nativeSchema)
+              : f.schema.valibotSchema.nativeSchema,
           ] as [string, v.BaseSchema],
       ),
     ),
   );
-  return new (class SequenceSchema extends BaseSchema<
-    SequenceFieldsObjectType<T>,
-    typeof _asn1Schema,
-    typeof _nativeSchema
-  > {
-    _valibot: ValibotSchema<typeof _asn1Schema, typeof _nativeSchema> = {
-      asn1Schema: _asn1Schema,
-      nativeSchema: _nativeSchema,
-    };
+  return new (class SequenceSchema
+    implements
+      BaseSchema<
+        SequenceFieldsObjectType<T>,
+        typeof _asn1Schema,
+        typeof _nativeSchema
+      >
+  {
+    valibotSchema: ValibotSchemaPair<typeof _asn1Schema, typeof _nativeSchema> =
+      {
+        asn1Schema: _asn1Schema,
+        nativeSchema: _nativeSchema,
+      };
     tagClass = _tagClass;
     tagType = _tagType;
     fields = config.fields;
 
     decode(asnData: Asn1Data) {
-      const parsedData = v.parse(this._valibot.asn1Schema, asnData);
+      const parsedData = v.parse(this.valibotSchema.asn1Schema, asnData);
       // biome-ignore lint/suspicious/noExplicitAny: <explanation>
       const obj: SequenceFieldsObjectType<T> = {} as any;
       let curAryIndex = 0;
@@ -145,7 +149,7 @@ export const sequence = <const T extends SequenceFieldAry>(
 
     encode(data: SequenceFieldsObjectType<T>) {
       const parsedData = v.parse(
-        this._valibot.nativeSchema,
+        this.valibotSchema.nativeSchema,
         data,
       ) as SequenceFieldsObjectType<T>;
       const uint8AryFields: Uint8Array[] = [];

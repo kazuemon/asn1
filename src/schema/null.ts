@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { TagClass, UniversalClassTag } from "../const";
-import { BaseSchema, CustomConfig, ValibotSchema } from "./base";
+import { BaseSchema, CustomConfig, ValibotSchemaPair } from "./base";
 import { idSchemaFactory } from "../utils/schema";
 import { Asn1Data } from "..";
 
@@ -17,25 +17,24 @@ export const null_ = (config?: CustomConfig) => {
     value: v.instance(Uint8Array),
   });
   const _nativeSchema = v.null_();
-  return new (class NullSchema extends BaseSchema<
-    null,
-    typeof _asn1Schema,
-    typeof _nativeSchema
-  > {
-    _valibot: ValibotSchema<typeof _asn1Schema, typeof _nativeSchema> = {
-      asn1Schema: _asn1Schema,
-      nativeSchema: _nativeSchema,
-    };
+  return new (class NullSchema
+    implements BaseSchema<null, typeof _asn1Schema, typeof _nativeSchema>
+  {
+    valibotSchema: ValibotSchemaPair<typeof _asn1Schema, typeof _nativeSchema> =
+      {
+        asn1Schema: _asn1Schema,
+        nativeSchema: _nativeSchema,
+      };
     tagClass = _tagClass;
     tagType = _tagType;
 
     decode(asnData: Asn1Data) {
-      const res = v.parse(this._valibot.asn1Schema, asnData);
+      const res = v.parse(this.valibotSchema.asn1Schema, asnData);
       return null;
     }
 
     encode(data: null) {
-      const parsedData = v.parse(this._valibot.nativeSchema, data);
+      const parsedData = v.parse(this.valibotSchema.nativeSchema, data);
       const value = new Uint8Array();
       let uint8Ary = Uint8Array.from([
         (this.tagClass << 6) + (0 << 5) + this.tagType,
