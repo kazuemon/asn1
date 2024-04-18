@@ -4,7 +4,7 @@ import { integer } from "../../src/schema/integer";
 import { octetString } from "../../src/schema/octet-string";
 import { sequence } from "../../src/schema/sequence";
 import { TagClass } from "../../src/const";
-import { ValiError } from "valibot";
+import { SchemaMismatchError } from "../../src/schema/base";
 
 describe("Sequence", () => {
   /**
@@ -311,7 +311,7 @@ describe("Sequence", () => {
       it("decode (throws Error)", () => {
         expect(() =>
           schema.decode(decodeAsn1(Buffer.from("300681010A800109", "hex"))),
-        ).toThrowError(ValiError);
+        ).toThrowError(SchemaMismatchError);
       });
     });
   });

@@ -1,32 +1,33 @@
 import * as v from "valibot";
 import { Asn1Data } from "..";
 import { TagClass, UniversalClassTag } from "../const";
-import { idSchemaFactory } from "../utils/schema";
-import { BaseSchema, SchemaConfig, ValibotSchemaPair } from "./base";
+import {
+  BaseSchema,
+  OverrideIdentifierConfig,
+  IdentifierSettledBaseSchema,
+  SchemaMismatchError,
+} from "./base";
 
-type SequenceField<
-  TSType,
-  Asn1Schema extends v.BaseSchema,
-  NativeSchema extends v.BaseSchema,
-> = Readonly<{
+type SequenceField<ToType, FromType> = Readonly<{
   name: string;
-  schema: BaseSchema<TSType, Asn1Schema, NativeSchema>;
+  schema: BaseSchema<ToType, FromType>;
   optional?: boolean;
 }>;
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-type AnySequenceField = SequenceField<any, v.BaseSchema, v.BaseSchema>;
+type AnySequenceField = SequenceField<any, any>;
 
 type SequenceFieldAry = Readonly<[AnySequenceField, ...AnySequenceField[]]>;
 
-type SequenceConfig<T extends SequenceFieldAry> = Partial<SchemaConfig> & {
+type SequenceConfig<
+  T extends SequenceFieldAry,
+  TClass extends TagClass,
+  TType extends number,
+> = OverrideIdentifierConfig<TClass, TType> & {
   fields: T;
 };
 
 // Thanks https://stackoverflow.com/questions/56988970/tuple-to-object-in-typescript-via-generics
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 type TupleToObject<T extends Readonly<[string, any]>> = {
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   [K in T[0]]: Extract<T, [K, any]>[1];
 };
 
@@ -52,14 +53,13 @@ type SequenceFieldsObjectType<T extends SequenceFieldAry> = PartialByKeys<
 >;
 
 export const optionalTuple = (fields: SequenceFieldAry) =>
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   v.special<[any, ...any[]]>((input) => {
     if (!Array.isArray(input)) return false;
     let curSchemaIndex = 0;
     let curAryIndex = 0;
     while (curAryIndex < input.length && curSchemaIndex < fields.length) {
       const res = v.safeParse(
-        fields[curSchemaIndex].schema.valibotSchema.asn1Schema,
+        fields[curSchemaIndex].schema.getAsn1Schema(),
         input[curAryIndex],
       );
       if (res.success) {
@@ -78,99 +78,88 @@ export const optionalTuple = (fields: SequenceFieldAry) =>
     return true;
   });
 
-const defaultConfig: SchemaConfig = {
-  tagClass: TagClass.UNIVERSAL,
-  tagType: UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF,
-};
+export class SequenceSchema<
+  const T extends SequenceFieldAry,
+  TClass extends TagClass = typeof TagClass.UNIVERSAL,
+  TType extends number = typeof UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF,
+> extends IdentifierSettledBaseSchema<
+  SequenceFieldsObjectType<T>,
+  TClass,
+  TType,
+  true
+> {
+  private fields;
+  protected nativeSchema;
 
-export const sequence = <const T extends SequenceFieldAry>({
-  fields,
-  ..._config
-}: SequenceConfig<T>) => {
-  const { tagClass, tagType } = { ...defaultConfig, ..._config };
-  const _asn1Schema = v.object({
-    id: idSchemaFactory({
-      tagClass,
-      isConstructed: true,
-      tagType,
-    }),
-    len: v.number([v.minValue(0)]),
-    value: optionalTuple(fields),
-  });
-  const _nativeSchema = v.object(
-    Object.fromEntries(
-      fields.map(
-        (f) =>
-          [
-            f.name,
-            f.optional
-              ? v.optional(f.schema.valibotSchema.nativeSchema)
-              : f.schema.valibotSchema.nativeSchema,
-          ] as [string, v.BaseSchema],
-      ),
-    ),
-  );
-  return new (class SequenceSchema
-    implements
-      BaseSchema<
-        SequenceFieldsObjectType<T>,
-        typeof _asn1Schema,
-        typeof _nativeSchema
-      >
-  {
-    valibotSchema: ValibotSchemaPair<typeof _asn1Schema, typeof _nativeSchema> =
+  constructor({
+    fields,
+    tagClass = TagClass.UNIVERSAL,
+    tagType = UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF,
+  }: SequenceConfig<T, TClass, TType>) {
+    super(
       {
-        asn1Schema: _asn1Schema,
-        nativeSchema: _nativeSchema,
-      };
-    tagClass = tagClass;
-    tagType = tagType;
-    fields = fields;
+        tagClass: tagClass as TClass,
+        tagType: tagType as TType,
+        isConstructed: true,
+      },
+      optionalTuple(fields),
+    );
+    this.fields = fields;
+    this.nativeSchema = v.object(
+      Object.fromEntries(
+        fields.map(
+          (f) =>
+            [
+              f.name,
+              f.optional
+                ? v.optional(f.schema.getNativeSchema())
+                : f.schema.getNativeSchema(),
+            ] as [string, v.BaseSchema],
+        ),
+      ),
+    );
+  }
 
-    decode(asnData: Asn1Data) {
-      const parsedData = v.parse(this.valibotSchema.asn1Schema, asnData);
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-      const obj: SequenceFieldsObjectType<T> = {} as any;
-      let curAryIndex = 0;
-      let curSchemaIndex = 0;
-      while (curAryIndex < parsedData.value.length) {
-        const field = this.fields[curSchemaIndex];
-        try {
-          obj[field.name as keyof SequenceFieldsObjectType<T>] =
-            field.schema.decode(parsedData.value[curAryIndex]);
-          curAryIndex++;
+  decodeValue(data: Asn1Data[]) {
+    const obj: SequenceFieldsObjectType<T> = {} as any;
+    let curAryIndex = 0;
+    let curSchemaIndex = 0;
+    const dataLength = data.length;
+    while (curAryIndex < dataLength) {
+      const field = this.fields[curSchemaIndex];
+      try {
+        obj[field.name as keyof SequenceFieldsObjectType<T>] =
+          field.schema.decode(data[curAryIndex]);
+        curAryIndex++;
+        curSchemaIndex++;
+      } catch (err) {
+        if (err instanceof SchemaMismatchError && field.optional) {
           curSchemaIndex++;
-        } catch (err) {
-          if (err instanceof v.ValiError && field.optional) {
-            curSchemaIndex++;
-            continue;
-          }
-          throw err;
+          continue;
         }
+        throw err;
       }
-      return obj;
     }
+    return obj;
+  }
 
-    encode(data: SequenceFieldsObjectType<T>) {
-      const parsedData = v.parse(
-        this.valibotSchema.nativeSchema,
-        data,
-      ) as SequenceFieldsObjectType<T>;
-      const uint8AryFields: Uint8Array[] = [];
-      for (const field of this.fields) {
-        if (!(field.name in parsedData)) continue;
-        const res = field.schema.encode(
-          parsedData[field.name as keyof SequenceFieldsObjectType<T>],
-        );
-        uint8AryFields.push(res);
-      }
-      const value = Buffer.concat(uint8AryFields);
-      let uint8Ary = Uint8Array.from([
-        (this.tagClass << 6) + 32 + this.tagType,
-        value.length,
-      ]);
-      uint8Ary = Buffer.concat([uint8Ary, value]);
-      return uint8Ary;
+  encodeValue(data: SequenceFieldsObjectType<T>) {
+    const uint8AryFields: Uint8Array[] = [];
+    for (const field of this.fields) {
+      if (!(field.name in data)) continue;
+      const res = field.schema.encode(
+        data[field.name as keyof SequenceFieldsObjectType<T>],
+      );
+      uint8AryFields.push(res);
     }
-  })();
-};
+    return Buffer.concat(uint8AryFields);
+  }
+}
+
+export const sequence = <
+  const T extends SequenceFieldAry,
+  TClass extends TagClass = typeof TagClass.UNIVERSAL,
+  TType extends number = typeof UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF,
+>(
+  config: SequenceConfig<T, TClass, TType>,
+) => new SequenceSchema(config);
