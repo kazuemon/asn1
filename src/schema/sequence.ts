@@ -18,12 +18,25 @@ type AnySequenceField = SequenceField<any, any>;
 
 type SequenceFieldAry = Readonly<[AnySequenceField, ...AnySequenceField[]]>;
 
+type GetOtherFieldIndexTuple<
+  T extends SequenceFieldAry,
+  K extends number | `${number}`,
+> = Exclude<Extract<keyof T, `${number}`>, `${K}`>;
+
+type UniqueCheckedSequenceFieldAry<T extends SequenceFieldAry> = {
+  [K in keyof T]: GetOtherFieldIndexTuple<T, K> extends never
+    ? T[K]
+    : T[K]["name"] extends T[GetOtherFieldIndexTuple<T, K>]["name"]
+      ? `name '${T[K]["name"]}' must be unique`
+      : T[K];
+};
+
 type SequenceConfig<
   T extends SequenceFieldAry,
   TClass extends TagClass,
   TType extends number,
 > = OverrideIdentifierConfig<TClass, TType> & {
-  fields: T;
+  fields: UniqueCheckedSequenceFieldAry<T>;
 };
 
 // Thanks https://stackoverflow.com/questions/56988970/tuple-to-object-in-typescript-via-generics
