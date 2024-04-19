@@ -18,15 +18,15 @@ type AnySequenceField = SequenceField<any, any>;
 
 type SequenceFieldAry = Readonly<[AnySequenceField, ...AnySequenceField[]]>;
 
-type GetOtherFieldIndexTuple<
+type OtherSequenceFieldIndexTuple<
   T extends SequenceFieldAry,
   K extends number | `${number}`,
 > = Exclude<Extract<keyof T, `${number}`>, `${K}`>;
 
 type UniqueCheckedSequenceFieldAry<T extends SequenceFieldAry> = {
-  [K in keyof T]: GetOtherFieldIndexTuple<T, K> extends never
+  [K in keyof T]: OtherSequenceFieldIndexTuple<T, K> extends never
     ? T[K]
-    : T[K]["name"] extends T[GetOtherFieldIndexTuple<T, K>]["name"]
+    : T[K]["name"] extends T[OtherSequenceFieldIndexTuple<T, K>]["name"]
       ? `name '${T[K]["name"]}' must be unique`
       : T[K];
 };
