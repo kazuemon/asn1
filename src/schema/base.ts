@@ -65,6 +65,10 @@ export abstract class IdentifierSettledBaseSchema<
     });
   }
 
+  getIdentifier() {
+    return this.identifier;
+  }
+
   getAsn1Schema() {
     return this.asn1Schema;
   }

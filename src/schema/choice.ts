@@ -1,6 +1,10 @@
 import * as v from "valibot";
 import { TagClass } from "../const";
-import { BaseSchema, IdentifierSettledBaseSchema } from "./base";
+import {
+  BaseSchema,
+  IdentifierSettledBaseSchema,
+  SchemaMismatchError,
+} from "./base";
 import { Asn1Data } from "..";
 
 export type BERInputDataByIdentifier<
@@ -101,7 +105,10 @@ type UniqueCheckedChoiceItemAry<T extends ChoiceItemAry> = {
             };
           }
         : T[K]["schema"] extends ChoiceSchema<infer Items>
-          ? UniqueCheckedChoiceItemAry<Items>
+          ? {
+              name: T[K]["name"];
+              schema: ChoiceSchema<UniqueCheckedChoiceItemAry<Items>>;
+            }
           : T[K];
 };
 
@@ -114,7 +121,10 @@ type AllChoiceItemsParsedUnion<T extends ChoiceItemAry> = {
   >
     ? BERData<TSType, T[P]["name"], TClass, TType>
     : T[P]["schema"] extends ChoiceSchema<infer Items>
-      ? AllChoiceItemsParsedUnion<Items>
+      ? {
+          name: T[P]["name"];
+          value: AllChoiceItemsParsedUnion<Items>;
+        }
       : never;
 }[number];
 
@@ -129,7 +139,10 @@ type AllChoiceItemsInputUnion<T extends ChoiceItemAry> = {
         | BERInputDataByName<TSType, T[P]["name"]>
         | BERInputDataByIdentifier<TSType, TClass, TType>
     : T[P]["schema"] extends ChoiceSchema<infer Items>
-      ? AllChoiceItemsInputUnion<Items>
+      ? {
+          name: T[P]["name"];
+          value: AllChoiceItemsInputUnion<Items>;
+        }
       : never;
 }[number];
 
@@ -142,7 +155,21 @@ export class ChoiceSchema<const T extends ChoiceItemAry>
   private nativeSchema;
 
   constructor({ fields }: { fields: UniqueCheckedChoiceItemAry<T> }) {
+    // TODO: fields schema runtime check
     this.fields = fields;
+    this.asn1Schema = v.union(
+      this.fields.map((field) => field.schema.getAsn1Schema()),
+    );
+    this.nativeSchema = v.union(
+      this.fields.map((field) =>
+        v.union([
+          v.object({
+            name: v.literal(field.name),
+            value: field.schema.getNativeSchema(),
+          }),
+        ]),
+      ),
+    );
   }
 
   getAsn1Schema(): v.BaseSchema {
@@ -154,11 +181,43 @@ export class ChoiceSchema<const T extends ChoiceItemAry>
   }
 
   decode(data: Asn1Data): AllChoiceItemsParsedUnion<T> {
-    throw new Error("Method not implemented.");
+    const result = v.safeParse(this.asn1Schema, data);
+    if (!result.success) throw new SchemaMismatchError();
+    const id = result.output.id;
+    for (const field of this.fields) {
+      try {
+        return {
+          name: field.name,
+          tagClass: id.tagClass,
+          tagType: id.tagType,
+          value: field.schema.decode(result.output),
+        } as AllChoiceItemsParsedUnion<T>;
+      } catch (e) {
+        if (e instanceof SchemaMismatchError) continue;
+        console.error(e);
+      }
+    }
+    throw new SchemaMismatchError();
   }
 
   encode(obj: AllChoiceItemsInputUnion<T>): Uint8Array {
-    throw new Error("Method not implemented.");
+    const result = v.safeParse(this.nativeSchema, obj);
+    if (!result.success) throw new SchemaMismatchError();
+    if ("name" in obj) {
+      // Named
+      const field = this.fields.find((field) => field.name === obj.name);
+      if (!field) throw new SchemaMismatchError();
+      return field.schema.encode(obj.value);
+    }
+    for (const field of this.fields) {
+      try {
+        return field.schema.encode(obj.value);
+      } catch (e) {
+        if (e instanceof SchemaMismatchError) continue;
+        console.error(e);
+      }
+    }
+    throw new SchemaMismatchError();
   }
 }
 
