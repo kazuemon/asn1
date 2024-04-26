@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decodeAsn1 } from "../../src";
 import { null_ } from "../../src/schema/null";
-import { ValiError } from "valibot";
+import { SchemaMismatchError } from "../../src/schema/base";
 
 describe("Null", () => {
   const schema = null_();
@@ -17,6 +17,6 @@ describe("Null", () => {
 
     expect(() =>
       schema.decode(decodeAsn1(Buffer.from("050101", "hex"))),
-    ).toThrowError(ValiError);
+    ).toThrowError(SchemaMismatchError);
   });
 });
