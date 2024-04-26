@@ -1,6 +1,10 @@
 import * as v from "valibot";
 import { TagClass, UniversalClassTag } from "../const";
-import { IdentifierSettledBaseSchema, OverrideIdentifierConfig } from "./base";
+import {
+  Identifier,
+  IdentifierSettledBaseSchema,
+  OverrideIdentifierConfig,
+} from "./base";
 import { pad0Hex } from "../utils";
 
 export class BooleanSchema<
@@ -22,6 +26,17 @@ export class BooleanSchema<
       v.instance(Uint8Array),
     );
     this.nativeSchema = v.boolean();
+  }
+
+  changeIdentifier<
+    NewTClass extends TagClass = TClass,
+    NewTType extends number = TType,
+  >(
+    newIdentifier: Partial<
+      Identifier<TagClass | NewTClass, number | NewTType, false>
+    > = this.getIdentifier(),
+  ) {
+    return new BooleanSchema(newIdentifier);
   }
 
   decodeValue(data: Uint8Array): boolean {

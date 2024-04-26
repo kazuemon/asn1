@@ -1,7 +1,11 @@
 import * as v from "valibot";
 import { TagClass, UniversalClassTag } from "../const";
 import { pad0Hex } from "../utils";
-import { IdentifierSettledBaseSchema, OverrideIdentifierConfig } from "./base";
+import {
+  Identifier,
+  IdentifierSettledBaseSchema,
+  OverrideIdentifierConfig,
+} from "./base";
 
 export class IntegerSchema<
   TClass extends TagClass = typeof TagClass.UNIVERSAL,
@@ -22,6 +26,17 @@ export class IntegerSchema<
       v.instance(Uint8Array),
     );
     this.nativeSchema = v.number();
+  }
+
+  changeIdentifier<
+    NewTClass extends TagClass = TClass,
+    NewTType extends number = TType,
+  >(
+    newIdentifier: Partial<
+      Identifier<TagClass | NewTClass, number | NewTType, false>
+    > = this.getIdentifier(),
+  ) {
+    return new IntegerSchema(newIdentifier);
   }
 
   decodeValue(data: Uint8Array): number {

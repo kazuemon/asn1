@@ -1,6 +1,10 @@
 import * as v from "valibot";
 import { TagClass, UniversalClassTag } from "../const";
-import { IdentifierSettledBaseSchema, OverrideIdentifierConfig } from "./base";
+import {
+  Identifier,
+  IdentifierSettledBaseSchema,
+  OverrideIdentifierConfig,
+} from "./base";
 
 export class NullSchema<
   TClass extends TagClass = typeof TagClass.UNIVERSAL,
@@ -22,6 +26,17 @@ export class NullSchema<
       v.literal(0),
     );
     this.nativeSchema = v.null_();
+  }
+
+  changeIdentifier<
+    NewTClass extends TagClass = TClass,
+    NewTType extends number = TType,
+  >(
+    newIdentifier: Partial<
+      Identifier<TagClass | NewTClass, number | NewTType, false>
+    > = this.getIdentifier(),
+  ) {
+    return new NullSchema(newIdentifier);
   }
 
   decodeValue(_data: Uint8Array): null {

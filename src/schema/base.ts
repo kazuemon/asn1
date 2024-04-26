@@ -65,6 +65,15 @@ export abstract class IdentifierSettledBaseSchema<
     });
   }
 
+  abstract changeIdentifier<
+    NewTClass extends TagClass = TClass,
+    NewTType extends number = TType,
+  >(
+    newIdentifier: Partial<
+      Identifier<NewTClass | TagClass, NewTType | number, IsConstructed>
+    >,
+  ): IdentifierSettledBaseSchema<TSType, NewTClass, NewTType, IsConstructed>;
+
   getIdentifier() {
     return this.identifier;
   }

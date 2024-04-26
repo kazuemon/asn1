@@ -6,6 +6,7 @@ import {
   OverrideIdentifierConfig,
   IdentifierSettledBaseSchema,
   SchemaMismatchError,
+  Identifier,
 } from "./base";
 
 type SequenceField<ToType, FromType> = Readonly<{
@@ -131,6 +132,21 @@ export class SequenceSchema<
         ),
       ),
     );
+  }
+
+  getFields() {
+    return this.fields;
+  }
+
+  changeIdentifier<
+    NewTClass extends TagClass = TClass,
+    NewTType extends number = TType,
+  >(
+    newIdentifier: Partial<
+      Identifier<TagClass | NewTClass, number | NewTType, true>
+    > = this.getIdentifier(),
+  ) {
+    return new SequenceSchema({ ...newIdentifier, fields: this.fields });
   }
 
   decodeValue(data: Asn1Data[]) {

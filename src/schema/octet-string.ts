@@ -1,6 +1,10 @@
 import * as v from "valibot";
 import { TagClass, UniversalClassTag } from "../const";
-import { IdentifierSettledBaseSchema, OverrideIdentifierConfig } from "./base";
+import {
+  Identifier,
+  IdentifierSettledBaseSchema,
+  OverrideIdentifierConfig,
+} from "./base";
 
 export class OctetStringSchema<
   TClass extends TagClass = typeof TagClass.UNIVERSAL,
@@ -22,6 +26,17 @@ export class OctetStringSchema<
       v.instance(Uint8Array),
     );
     this.nativeSchema = v.string();
+  }
+
+  changeIdentifier<
+    NewTClass extends TagClass = TClass,
+    NewTType extends number = TType,
+  >(
+    newIdentifier: Partial<
+      Identifier<TagClass | NewTClass, number | NewTType, false>
+    > = this.getIdentifier(),
+  ) {
+    return new OctetStringSchema(newIdentifier);
   }
 
   decodeValue(data: Uint8Array): string {
