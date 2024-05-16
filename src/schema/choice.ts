@@ -50,7 +50,7 @@ type OtherChoiceItemIndexTuple<
 
 type GetIdentifierPair<T extends BaseSchema<any, any>> =
   T extends IdentifierSettledBaseSchema<
-    infer _,
+    any,
     infer TClass,
     infer TType,
     infer __
