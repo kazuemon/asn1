@@ -61,10 +61,13 @@ type SequenceAllFieldsObjectType<T extends SequenceFieldAry> = TupleToObject<
 type PartialByKeys<T, Keys extends keyof T> = Omit<T, Keys> &
   Partial<Pick<T, Keys>>;
 
-type SequenceFieldsObjectType<T extends SequenceFieldAry> = PartialByKeys<
-  SequenceAllFieldsObjectType<T>,
-  SequenceOptionalFieldsNameTuple<T>
->;
+export type SequenceFieldsObjectType<T extends SequenceFieldAry> =
+  SequenceOptionalFieldsNameTuple<T> extends never
+    ? SequenceAllFieldsObjectType<T>
+    : PartialByKeys<
+        SequenceAllFieldsObjectType<T>,
+        SequenceOptionalFieldsNameTuple<T>
+      >;
 
 export const optionalTuple = (fields: SequenceFieldAry) =>
   v.special<[any, ...any[]]>((input) => {
