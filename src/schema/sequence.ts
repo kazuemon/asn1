@@ -17,7 +17,7 @@ type SequenceField<ToType, FromType> = Readonly<{
 
 type AnySequenceField = SequenceField<any, any>;
 
-type SequenceFieldAry = Readonly<[AnySequenceField, ...AnySequenceField[]]>;
+type SequenceFieldAry = ReadonlyArray<AnySequenceField>;
 
 type OtherSequenceFieldIndexTuple<
   T extends SequenceFieldAry,
@@ -105,7 +105,7 @@ export class SequenceSchema<
   TType,
   true
 > {
-  private fields;
+  private fields: T;
   protected nativeSchema;
 
   constructor({
@@ -121,7 +121,7 @@ export class SequenceSchema<
       },
       optionalTuple(fields),
     );
-    this.fields = fields;
+    this.fields = fields as T;
     this.nativeSchema = v.object(
       Object.fromEntries(
         fields.map(
@@ -149,10 +149,13 @@ export class SequenceSchema<
       Identifier<TagClass | NewTClass, number | NewTType, true>
     > = this.getIdentifier(),
   ) {
-    return new SequenceSchema({ ...newIdentifier, fields: this.fields });
+    return new SequenceSchema({
+      ...newIdentifier,
+      fields: this.fields,
+    }) as SequenceSchema<T, NewTClass, NewTType>;
   }
 
-  decodeValue(data: Asn1Data[]) {
+  decodeValue(data: Asn1Data[]): SequenceFieldsObjectType<T> {
     const obj: SequenceFieldsObjectType<T> = {} as any;
     let curAryIndex = 0;
     let curSchemaIndex = 0;
