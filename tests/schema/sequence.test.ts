@@ -19,15 +19,15 @@ describe("Sequence", () => {
 
   describe("default", () => {
     const schema = sequence({
-      fields: [
-        {
+      fields: (f) => [
+        f({
           name: "id",
           schema: integer(),
-        },
-        {
+        }),
+        f({
           name: "message",
           schema: octetString(),
-        },
+        }),
       ],
     });
 
@@ -57,17 +57,17 @@ describe("Sequence", () => {
   });
   describe("empty", () => {
     const schema = sequence({
-      fields: [
-        {
+      fields: (f) => [
+        f({
           name: "id",
           schema: integer(),
           optional: true,
-        },
-        {
+        }),
+        f({
           name: "message",
           schema: octetString(),
           optional: true,
-        },
+        }),
       ],
     });
     it("encode", () => {
@@ -85,16 +85,16 @@ describe("Sequence", () => {
   describe("optional", () => {
     describe("[required, optional]", () => {
       const schema = sequence({
-        fields: [
-          {
+        fields: (f) => [
+          f({
             name: "id",
             schema: integer(),
-          },
-          {
+          }),
+          f({
             name: "message",
             schema: octetString(),
             optional: true,
-          },
+          }),
         ],
       });
 
@@ -150,16 +150,17 @@ describe("Sequence", () => {
     });
     describe("[optional, required]", () => {
       const schema = sequence({
-        fields: [
-          {
+        fields: (f) => [
+          f({
             name: "id",
             schema: integer(),
             optional: true,
-          },
-          {
+          }),
+          f({
             name: "message",
             schema: octetString(),
-          },
+            optional: false,
+          }),
         ],
       });
 
@@ -204,23 +205,23 @@ describe("Sequence", () => {
   describe("Context-Specific", () => {
     // from https://letsencrypt.org/ja/docs/a-warm-welcome-to-asn1-and-der
     const schema = sequence({
-      fields: [
-        {
+      fields: (f) => [
+        f({
           name: "x",
           schema: integer({
             tagClass: TagClass.CONTEXT_SPECIFIC,
             tagType: 0,
           }),
           optional: true,
-        },
-        {
+        }),
+        f({
           name: "y",
           schema: integer({
             tagClass: TagClass.CONTEXT_SPECIFIC,
             tagType: 1,
           }),
           optional: true,
-        },
+        }),
       ],
     });
     describe("none", () => {

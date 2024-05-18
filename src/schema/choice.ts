@@ -34,31 +34,34 @@ export type BERData<
   value: TSType;
 };
 
-type ChoiceItem<ToType, FromType> = Readonly<{
-  name: string;
-  schema: BaseSchema<ToType, FromType>;
-}>;
+type ChoiceItem<Name extends string, Schema extends BaseSchema<any, any>> = {
+  name: Name;
+  schema: Schema;
+};
+
+export const item = <
+  const Name extends string,
+  Schema extends BaseSchema<any, any>,
+>(
+  item: ChoiceItem<Name, Schema>,
+) => item;
 
 type AnyChoiceItem = ChoiceItem<any, any>;
 
-type ChoiceItemAry = Readonly<[AnyChoiceItem, ...AnyChoiceItem[]]>;
+type ChoiceItemAry = AnyChoiceItem[];
 
 type OtherChoiceItemIndexTuple<
   T extends ChoiceItemAry,
   K extends number | `${number}`,
 > = Exclude<Extract<keyof T, `${number}`>, `${K}`>;
 
-type GetIdentifierPair<T extends BaseSchema<any, any>> =
-  T extends IdentifierSettledBaseSchema<
-    any,
-    infer TClass,
-    infer TType,
-    infer __
-  >
-    ? [TClass, TType]
-    : T extends ChoiceSchema<infer Items>
-      ? AllChoiceItemsIdentifierPairUnion<Items>
-      : never;
+type GetIdentifierPair<T extends BaseSchema<any, any>> = [T] extends [
+  IdentifierSettledBaseSchema<any, infer TClass, infer TType, infer __>,
+]
+  ? [TClass, TType]
+  : T extends ChoiceSchema<infer Items>
+    ? AllChoiceItemsIdentifierPairUnion<Items>
+    : never;
 
 type AllChoiceItemsIdentifierPairUnion<T extends ChoiceItemAry> = {
   [P in keyof T]: GetIdentifierPair<T[P]["schema"]>;
@@ -146,22 +149,28 @@ type AllChoiceItemsInputUnion<T extends ChoiceItemAry> = {
       : never;
 }[number];
 
-export class ChoiceSchema<const T extends ChoiceItemAry>
+type ChoiceConfig<T extends ChoiceItemAry> = {
+  items:
+    | UniqueCheckedChoiceItemAry<T>
+    | ((i: typeof item) => UniqueCheckedChoiceItemAry<T>);
+};
+
+export class ChoiceSchema<T extends ChoiceItemAry>
   implements
     BaseSchema<AllChoiceItemsParsedUnion<T>, AllChoiceItemsInputUnion<T>>
 {
-  private fields;
+  private items;
   private asn1Schema;
   private nativeSchema;
 
-  constructor({ fields }: { fields: UniqueCheckedChoiceItemAry<T> }) {
+  constructor({ items }: ChoiceConfig<T>) {
     // TODO: fields schema runtime check
-    this.fields = fields;
+    this.items = typeof items === "function" ? items(item) : items;
     this.asn1Schema = v.union(
-      this.fields.map((field) => field.schema.getAsn1Schema()),
+      this.items.map((field) => field.schema.getAsn1Schema()),
     );
     this.nativeSchema = v.union(
-      this.fields.map((field) =>
+      this.items.map((field) =>
         v.union([
           v.object({
             name: v.literal(field.name),
@@ -184,7 +193,7 @@ export class ChoiceSchema<const T extends ChoiceItemAry>
     const result = v.safeParse(this.asn1Schema, data);
     if (!result.success) throw new SchemaMismatchError();
     const id = result.output.id;
-    for (const field of this.fields) {
+    for (const field of this.items) {
       try {
         return {
           name: field.name,
@@ -205,11 +214,11 @@ export class ChoiceSchema<const T extends ChoiceItemAry>
     if (!result.success) throw new SchemaMismatchError();
     if ("name" in obj) {
       // Named
-      const field = this.fields.find((field) => field.name === obj.name);
+      const field = this.items.find((field) => field.name === obj.name);
       if (!field) throw new SchemaMismatchError();
       return field.schema.encode(obj.value);
     }
-    for (const field of this.fields) {
+    for (const field of this.items) {
       try {
         return field.schema.encode(obj.value);
       } catch (e) {
@@ -221,6 +230,5 @@ export class ChoiceSchema<const T extends ChoiceItemAry>
   }
 }
 
-export const choice = <const T extends ChoiceItemAry>(config: {
-  fields: UniqueCheckedChoiceItemAry<T>;
-}) => new ChoiceSchema(config);
+export const choice = <T extends ChoiceItemAry>(config: ChoiceConfig<T>) =>
+  new ChoiceSchema(config);

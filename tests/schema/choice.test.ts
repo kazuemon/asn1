@@ -8,11 +8,11 @@ import { TagClass } from "../../src/const";
 describe("choice", () => {
   describe("single", () => {
     const schema = choice({
-      fields: [
-        {
+      items: (i) => [
+        i({
           name: "a",
           schema: integer(),
-        },
+        }),
       ],
     });
     it("encode", () => {
@@ -39,15 +39,15 @@ describe("choice", () => {
   describe("multiple", () => {
     describe("different type and different tag", () => {
       const schema = choice({
-        fields: [
-          {
+        items: (i) => [
+          i({
             name: "a",
             schema: integer(),
-          },
-          {
+          }),
+          i({
             name: "b",
             schema: octetString(),
-          },
+          }),
         ],
       });
       it("encode", () => {
@@ -93,21 +93,21 @@ describe("choice", () => {
     });
     describe("same type and different tag", () => {
       const schema = choice({
-        fields: [
-          {
+        items: (i) => [
+          i({
             name: "a",
             schema: integer({
               tagClass: TagClass.APPLICATION,
               tagType: 0,
             }),
-          },
-          {
+          }),
+          i({
             name: "b",
             schema: integer({
               tagClass: TagClass.APPLICATION,
               tagType: 1,
             }),
-          },
+          }),
         ],
       });
       it("encode", () => {
@@ -154,32 +154,32 @@ describe("choice", () => {
   });
   describe("choice in choice", () => {
     const schema = choice({
-      fields: [
-        {
+      items: (i) => [
+        i({
           name: "a",
           schema: integer(),
-        },
-        {
+        }),
+        i({
           name: "b",
           schema: choice({
-            fields: [
-              {
+            items: (i) => [
+              i({
                 name: "b1",
                 schema: integer({
                   tagClass: TagClass.APPLICATION,
                   tagType: 0,
                 }),
-              },
-              {
+              }),
+              i({
                 name: "b2",
                 schema: integer({
                   tagClass: TagClass.APPLICATION,
                   tagType: 1,
                 }),
-              },
+              }),
             ],
           }),
-        },
+        }),
       ],
     });
     it("encode", () => {

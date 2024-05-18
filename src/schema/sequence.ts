@@ -9,15 +9,32 @@ import {
   Identifier,
 } from "./base";
 
-type SequenceField<ToType, FromType> = Readonly<{
-  name: string;
-  schema: BaseSchema<ToType, FromType>;
-  optional?: boolean;
-}>;
+type SequenceField<
+  Name extends string,
+  Schema extends BaseSchema<any, any>,
+  IsOptional extends boolean,
+> = {
+  name: Name;
+  schema: Schema;
+  optional: IsOptional;
+};
 
-type AnySequenceField = SequenceField<any, any>;
+export const field = <
+  const Name extends string,
+  Schema extends BaseSchema<any, any>,
+  const IsOptional extends boolean = false,
+>({
+  name,
+  schema,
+  optional = false as IsOptional,
+}: PartialByKeys<
+  SequenceField<Name, Schema, IsOptional>,
+  "optional"
+>): SequenceField<Name, Schema, IsOptional> => ({ name, schema, optional });
 
-type SequenceFieldAry = Readonly<[AnySequenceField, ...AnySequenceField[]]>;
+type AnySequenceField = SequenceField<any, any, any>;
+
+type SequenceFieldAry = AnySequenceField[];
 
 type OtherSequenceFieldIndexTuple<
   T extends SequenceFieldAry,
@@ -37,7 +54,9 @@ type SequenceConfig<
   TClass extends TagClass,
   TType extends number,
 > = OverrideIdentifierConfig<TClass, TType> & {
-  fields: UniqueCheckedSequenceFieldAry<T>;
+  fields:
+    | UniqueCheckedSequenceFieldAry<T>
+    | ((f: typeof field) => UniqueCheckedSequenceFieldAry<T>);
 };
 
 // Thanks https://stackoverflow.com/questions/56988970/tuple-to-object-in-typescript-via-generics
@@ -93,7 +112,7 @@ export const optionalTuple = (fields: SequenceFieldAry) =>
   });
 
 export class SequenceSchema<
-  const T extends SequenceFieldAry,
+  T extends SequenceFieldAry,
   TClass extends TagClass = typeof TagClass.UNIVERSAL,
   TType extends number = typeof UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF,
 > extends IdentifierSettledBaseSchema<
@@ -110,18 +129,19 @@ export class SequenceSchema<
     tagClass = TagClass.UNIVERSAL,
     tagType = UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF,
   }: SequenceConfig<T, TClass, TType>) {
+    const _fields = typeof fields === "function" ? fields(field) : fields;
     super(
       {
         tagClass: tagClass as TClass,
         tagType: tagType as TType,
         isConstructed: true,
       },
-      optionalTuple(fields),
+      optionalTuple(_fields),
     );
-    this.fields = fields;
+    this.fields = _fields;
     this.nativeSchema = v.object(
       Object.fromEntries(
-        fields.map(
+        this.fields.map(
           (f) =>
             [
               f.name,
@@ -186,7 +206,7 @@ export class SequenceSchema<
 }
 
 export const sequence = <
-  const T extends SequenceFieldAry,
+  T extends SequenceFieldAry,
   TClass extends TagClass = typeof TagClass.UNIVERSAL,
   TType extends number = typeof UniversalClassTag.SEQUENCE_AND_SEQUENCE_OF,
 >(
