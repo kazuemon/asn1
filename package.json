@@ -1,7 +1,7 @@
 {
   "name": "@kazuemon/asn1",
   "author": "Kazuya Miyamoto <git@k6n.jp>",
-  "version": "0.1.1",
+  "version": "0.1.4",
   "type": "module",
   "description": "TypeScript friendly ASN.1 schema definition, encoding and decoding library",
   "license": "MIT",
@@ -9,14 +9,17 @@
     "type": "git",
     "url": "https://github.com/kazuemon/asn1"
   },
-  "main": "./index.umd.cjs",
-  "module": "./index.js",
-  "types": "./index.d.ts",
+  "main": "./dist/index.umd.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
-      "types": "./index.d.ts",
-      "import": "./index.js",
-      "require": "./index.umd.cjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.umd.cjs"
     }
   },
   "scripts": {
@@ -24,9 +27,7 @@
     "format": "biome format --write ./src",
     "lint": "biome lint ./src",
     "check": "biome check --apply ./src",
-    "test": "vitest",
-    "pub": "npm publish ./dist",
-    "postbuild": "cp package.json dist"
+    "test": "vitest"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.7.3",
