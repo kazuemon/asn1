@@ -194,7 +194,7 @@ export class ChoiceSchema<const T extends ChoiceItemAry>
         } as AllChoiceItemsParsedUnion<T>;
       } catch (e) {
         if (e instanceof SchemaMismatchError) continue;
-        console.error(e);
+        throw e;
       }
     }
     throw new SchemaMismatchError();
@@ -214,7 +214,7 @@ export class ChoiceSchema<const T extends ChoiceItemAry>
         return field.schema.encode(obj.value);
       } catch (e) {
         if (e instanceof SchemaMismatchError) continue;
-        console.error(e);
+        throw e;
       }
     }
     throw new SchemaMismatchError();
