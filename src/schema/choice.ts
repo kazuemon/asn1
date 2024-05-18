@@ -1,11 +1,11 @@
 import * as v from "valibot";
-import { TagClass } from "../const";
+import type { TagClass } from "../const";
+import type { Asn1Data } from "../types";
 import {
-  BaseSchema,
-  IdentifierSettledBaseSchema,
+  type BaseSchema,
+  type IdentifierSettledBaseSchema,
   SchemaMismatchError,
 } from "./base";
-import { Asn1Data } from "..";
 
 export type BERInputDataByIdentifier<
   TSType,

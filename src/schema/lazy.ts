@@ -1,6 +1,6 @@
 import * as v from "valibot";
-import { BaseSchema } from "./base";
-import { Asn1Data } from "..";
+import type { Asn1Data } from "../types";
+import type { BaseSchema } from "./base";
 
 export class LazySchema<ToType, FromType>
   implements BaseSchema<ToType, FromType>

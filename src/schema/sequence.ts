@@ -1,12 +1,12 @@
 import * as v from "valibot";
-import { Asn1Data } from "..";
 import { TagClass, UniversalClassTag } from "../const";
+import type { Asn1Data } from "../types";
 import {
-  BaseSchema,
-  OverrideIdentifierConfig,
+  type BaseSchema,
+  type Identifier,
   IdentifierSettledBaseSchema,
+  type OverrideIdentifierConfig,
   SchemaMismatchError,
-  Identifier,
 } from "./base";
 
 type SequenceField<ToType, FromType> = Readonly<{

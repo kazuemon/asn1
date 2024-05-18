@@ -2,9 +2,9 @@ import * as v from "valibot";
 import { TagClass, UniversalClassTag } from "../const";
 import { pad0Hex } from "../utils";
 import {
-  Identifier,
+  type Identifier,
   IdentifierSettledBaseSchema,
-  OverrideIdentifierConfig,
+  type OverrideIdentifierConfig,
 } from "./base";
 
 export class IntegerSchema<

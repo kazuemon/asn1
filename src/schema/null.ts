@@ -1,9 +1,9 @@
 import * as v from "valibot";
 import { TagClass, UniversalClassTag } from "../const";
 import {
-  Identifier,
+  type Identifier,
   IdentifierSettledBaseSchema,
-  OverrideIdentifierConfig,
+  type OverrideIdentifierConfig,
 } from "./base";
 
 export class NullSchema<

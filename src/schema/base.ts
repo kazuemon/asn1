@@ -1,6 +1,6 @@
 import * as v from "valibot";
-import { Asn1Data } from "..";
-import { TagClass } from "../const";
+import type { TagClass } from "../const";
+import type { Asn1Data } from "../types";
 
 export class SchemaMismatchError extends Error {}
 

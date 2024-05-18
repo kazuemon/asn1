@@ -1,11 +1,11 @@
 import * as v from "valibot";
 import { TagClass, UniversalClassTag } from "../const";
-import {
-  Identifier,
-  IdentifierSettledBaseSchema,
-  OverrideIdentifierConfig,
-} from "./base";
 import { pad0Hex } from "../utils";
+import {
+  type Identifier,
+  IdentifierSettledBaseSchema,
+  type OverrideIdentifierConfig,
+} from "./base";
 
 export class BooleanSchema<
   TClass extends TagClass = typeof TagClass.UNIVERSAL,

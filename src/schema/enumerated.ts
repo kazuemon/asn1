@@ -1,12 +1,12 @@
 import * as v from "valibot";
-import { BaseSchema } from "valibot";
+import type { BaseSchema } from "valibot";
 import { TagClass, UniversalClassTag } from "../const";
-import {
-  Identifier,
-  IdentifierSettledBaseSchema,
-  OverrideIdentifierConfig,
-} from "./base";
 import { pad0Hex } from "../utils";
+import {
+  type Identifier,
+  IdentifierSettledBaseSchema,
+  type OverrideIdentifierConfig,
+} from "./base";
 
 type EnumType = Record<string, number>;
 

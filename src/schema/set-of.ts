@@ -1,12 +1,12 @@
 import * as v from "valibot";
 import { TagClass, UniversalClassTag } from "../const";
+import type { Asn1Data } from "../types";
 import {
-  BaseSchema,
-  Identifier,
+  type BaseSchema,
+  type Identifier,
   IdentifierSettledBaseSchema,
-  OverrideIdentifierConfig,
+  type OverrideIdentifierConfig,
 } from "./base";
-import { Asn1Data } from "..";
 
 type SetOfConfig<
   FSchema extends BaseSchema<any, any>,
