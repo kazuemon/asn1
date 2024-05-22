@@ -1,7 +1,7 @@
 {
   "name": "@kazuemon/asn1",
   "author": "Kazuya Miyamoto <git@k6n.jp>",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "TypeScript friendly ASN.1 schema definition, encoding and decoding library",
   "license": "MIT",
