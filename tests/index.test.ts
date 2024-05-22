@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { decodeAsn1, Asn1Data } from "../src";
+import { decodeAsn1, type Asn1Data, sequence, octetString } from "../src";
 import { TagClass, UniversalClassTag } from "../src/const";
 
 describe("Asn1 Decode Example", () => {
   describe("long length octet", () => {
-    it("6+293", () => {
+    it("decode (6+293)", () => {
       const result = decodeAsn1(
         Buffer.from(
           "30840000012502010263840000011c04000a01000a0100020100020100010100870b6f626a656374436c6173733084000000f804012a0411737562736368656d61537562656e747279040e6e616d696e67436f6e74657874730412737570706f72746564457874656e73696f6e0411737570706f7274656446656174757265730410737570706f72746564436f6e74726f6c0417737570706f727465645341534c4d656368616e69736d730414737570706f727465644c44415056657273696f6e0409616c74536572766572041464656661756c744e616d696e67436f6e746578740417726f6f74446f6d61696e4e616d696e67436f6e74657874040a76656e646f724e616d65040d76656e646f7256657273696f6e041369626d6469726563746f727976657273696f6e",
@@ -278,6 +278,43 @@ describe("Asn1 Decode Example", () => {
           },
         ],
       });
+    });
+    it("encode (4+345)", () => {
+      const schema = sequence({
+        fields: [
+          {
+            name: "line1",
+            schema: octetString(),
+          },
+          {
+            name: "line2",
+            schema: octetString(),
+          },
+          {
+            name: "line3",
+            schema: octetString(),
+          },
+          {
+            name: "line4",
+            schema: octetString(),
+          },
+        ],
+      });
+
+      const result = schema.encode({
+        line1:
+          "This is a test sentence, and as such, it holds no real value or meaning for readers.",
+        line2:
+          "The purpose here is purely functional, making this text unworthy of deeper attention.",
+        line3:
+          "No valuable information is contained here; it exists solely to serve as a placeholder.",
+        line4:
+          "Reading this is pointless, as it was created merely to test formatting and length.",
+      });
+
+      expect(Buffer.from(result).toString("hex").toUpperCase()).toEqual(
+        "30820159045454686973206973206120746573742073656E74656E63652C20616E6420617320737563682C20697420686F6C6473206E6F207265616C2076616C7565206F72206D65616E696E6720666F7220726561646572732E045554686520707572706F7365206865726520697320707572656C792066756E6374696F6E616C2C206D616B696E672074686973207465787420756E776F72746879206F662064656570657220617474656E74696F6E2E04564E6F2076616C7561626C6520696E666F726D6174696F6E20697320636F6E7461696E656420686572653B2069742065786973747320736F6C656C7920746F207365727665206173206120706C616365686F6C6465722E045252656164696E67207468697320697320706F696E746C6573732C206173206974207761732063726561746564206D6572656C7920746F207465737420666F726D617474696E6720616E64206C656E6774682E",
+      );
     });
   });
 

@@ -1,6 +1,7 @@
 import * as v from "valibot";
 import type { TagClass } from "../const";
 import type { Asn1Data } from "../types";
+import { getLengthOctetAry } from "../utils";
 
 export class SchemaMismatchError extends Error {}
 
@@ -101,7 +102,7 @@ export abstract class IdentifierSettledBaseSchema<
         (this.identifier.tagClass << 6) +
           (+!!this.identifier.isConstructed << 5) +
           this.identifier.tagType,
-        value.length,
+        ...getLengthOctetAry(value.length),
       ]),
       value,
     ]);
