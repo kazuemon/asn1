@@ -112,14 +112,23 @@ type UniqueCheckedChoiceItemAry<T extends ChoiceItemAry> = {
           : T[K];
 };
 
-type AllChoiceItemsParsedUnion<T extends ChoiceItemAry> = {
+type AllChoiceItemsParsedUnion<
+  T extends ChoiceItemAry,
+  OverrideTClass extends TagClass = never,
+  OverrideTType extends number = never,
+> = {
   [P in keyof T]: T[P]["schema"] extends IdentifierSettledBaseSchema<
     infer TSType,
     infer TClass,
     infer TType,
     infer _
   >
-    ? BERData<TSType, T[P]["name"], TClass, TType>
+    ? BERData<
+        TSType,
+        T[P]["name"],
+        OverrideTClass extends never ? TClass : OverrideTClass,
+        OverrideTType extends never ? TType : OverrideTType
+      >
     : T[P]["schema"] extends ChoiceSchema<infer Items>
       ? {
           name: T[P]["name"];
@@ -128,7 +137,11 @@ type AllChoiceItemsParsedUnion<T extends ChoiceItemAry> = {
       : never;
 }[number];
 
-type AllChoiceItemsInputUnion<T extends ChoiceItemAry> = {
+type AllChoiceItemsInputUnion<
+  T extends ChoiceItemAry,
+  OverrideTClass extends TagClass = never,
+  OverrideTType extends number = never,
+> = {
   [P in keyof T]: T[P]["schema"] extends IdentifierSettledBaseSchema<
     infer TSType,
     infer TClass,
@@ -137,7 +150,11 @@ type AllChoiceItemsInputUnion<T extends ChoiceItemAry> = {
   >
     ?
         | BERInputDataByName<TSType, T[P]["name"]>
-        | BERInputDataByIdentifier<TSType, TClass, TType>
+        | BERInputDataByIdentifier<
+            TSType,
+            OverrideTClass extends never ? TClass : OverrideTClass,
+            OverrideTType extends never ? TType : OverrideTType
+          >
     : T[P]["schema"] extends ChoiceSchema<infer Items>
       ? {
           name: T[P]["name"];
@@ -146,19 +163,59 @@ type AllChoiceItemsInputUnion<T extends ChoiceItemAry> = {
       : never;
 }[number];
 
-export class ChoiceSchema<const T extends ChoiceItemAry>
-  implements
-    BaseSchema<AllChoiceItemsParsedUnion<T>, AllChoiceItemsInputUnion<T>>
+type ChoiceConfig<
+  T extends ChoiceItemAry,
+  OverrideTClass extends TagClass = never,
+  OverrideTType extends number = never,
+> = {
+  fields: UniqueCheckedChoiceItemAry<T>;
+  overrideTagClass?: OverrideTClass;
+  overrideTagType?: OverrideTType;
+};
+
+export class ChoiceSchema<
+  const T extends ChoiceItemAry,
+  OverrideTClass extends TagClass = never,
+  OverrideTType extends number = never,
+> implements
+    BaseSchema<
+      AllChoiceItemsParsedUnion<T, OverrideTClass, OverrideTType>,
+      AllChoiceItemsInputUnion<T, OverrideTClass, OverrideTType>
+    >
 {
   private fields;
   private asn1Schema;
   private nativeSchema;
 
-  constructor({ fields }: { fields: UniqueCheckedChoiceItemAry<T> }) {
+  private overrideTClass;
+  private overrideTType;
+
+  constructor({
+    fields,
+    overrideTagClass,
+    overrideTagType,
+  }: ChoiceConfig<T, OverrideTClass, OverrideTType>) {
     // TODO: fields schema runtime check
     this.fields = fields;
+    this.overrideTType = overrideTagType;
+    this.overrideTClass = overrideTagClass;
     this.asn1Schema = v.union(
-      this.fields.map((field) => field.schema.getAsn1Schema()),
+      this.fields.map((field) => {
+        const schema = field.schema.getAsn1Schema() as v.ObjectSchema<any>;
+        if (!overrideTagClass && !overrideTagType) return schema;
+        return v.object({
+          ...schema.entries,
+          id: v.object({
+            tagClass: v.literal(
+              this.overrideTClass ?? schema.entries.id.entries.tagClass,
+            ),
+            tagType: v.literal(
+              this.overrideTType ?? schema.entries.id.entries.tagType,
+            ),
+            isConstructed: schema.entries.id.isConstructed,
+          }),
+        });
+      }),
     );
     this.nativeSchema = v.union(
       this.fields.map((field) =>
@@ -180,7 +237,26 @@ export class ChoiceSchema<const T extends ChoiceItemAry>
     return this.nativeSchema;
   }
 
-  decode(data: Asn1Data): AllChoiceItemsParsedUnion<T> {
+  overrideIdentifier<
+    NewOverrideTClass extends TagClass = OverrideTClass,
+    NewOverrideTType extends number = OverrideTType,
+  >({
+    newTagClass = this.overrideTClass,
+    newTagType = this.overrideTType,
+  }: {
+    newTagClass: NewOverrideTClass | TagClass | undefined;
+    newTagType: NewOverrideTType | number | undefined;
+  }) {
+    return new ChoiceSchema({
+      fields: this.fields,
+      overrideTagClass: newTagClass,
+      overrideTagType: newTagType,
+    });
+  }
+
+  decode(
+    data: Asn1Data,
+  ): AllChoiceItemsParsedUnion<T, OverrideTClass, OverrideTType> {
     const result = v.safeParse(this.asn1Schema, data);
     if (!result.success) throw new SchemaMismatchError();
     const id = result.output.id;
@@ -190,8 +266,8 @@ export class ChoiceSchema<const T extends ChoiceItemAry>
           name: field.name,
           tagClass: id.tagClass,
           tagType: id.tagType,
-          value: field.schema.decode(result.output),
-        } as AllChoiceItemsParsedUnion<T>;
+          value: field.schema.decode(result.output as any),
+        } as AllChoiceItemsParsedUnion<T, OverrideTClass, OverrideTType>;
       } catch (e) {
         if (e instanceof SchemaMismatchError) continue;
         throw e;
@@ -200,7 +276,9 @@ export class ChoiceSchema<const T extends ChoiceItemAry>
     throw new SchemaMismatchError();
   }
 
-  encode(obj: AllChoiceItemsInputUnion<T>): Uint8Array {
+  encode(
+    obj: AllChoiceItemsInputUnion<T, OverrideTClass, OverrideTType>,
+  ): Uint8Array {
     const result = v.safeParse(this.nativeSchema, obj);
     if (!result.success) throw new SchemaMismatchError();
     if ("name" in obj) {
@@ -221,6 +299,10 @@ export class ChoiceSchema<const T extends ChoiceItemAry>
   }
 }
 
-export const choice = <const T extends ChoiceItemAry>(config: {
-  fields: UniqueCheckedChoiceItemAry<T>;
-}) => new ChoiceSchema(config);
+export const choice = <
+  const T extends ChoiceItemAry,
+  OverrideTClass extends TagClass = never,
+  OverrideTType extends number = never,
+>(
+  config: ChoiceConfig<T, OverrideTClass, OverrideTType>,
+) => new ChoiceSchema(config);
