@@ -9,3 +9,4 @@ export * from "./sequence-of";
 export * from "./sequence";
 export * from "./set-of";
 export * from "./base";
+export * from "./explicit";

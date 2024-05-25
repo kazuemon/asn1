@@ -1,8 +1,8 @@
 import * as v from "valibot";
 import type { TagClass } from "../const";
 import type { Asn1Data } from "../types";
-import { type BaseSchema, SchemaMismatchError } from "./base";
 import { getLengthOctetAry } from "../utils";
+import { type BaseSchema, SchemaMismatchError } from "./base";
 
 type ExplicitConfig<
   TClass extends TagClass,
